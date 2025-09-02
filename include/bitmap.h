@@ -28,6 +28,8 @@ struct bad_format {
 
 image read_bmp(const char *filename);
 
+bool write_bmp(image &im);
+
 }
 
 #endif  // BITMAP_H

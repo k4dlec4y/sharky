@@ -10,4 +10,6 @@ int main()
     std::cout << im.capacity << std::endl;
     std::cout << im.padding << std::endl;
     std::cout << im.img_data.size() << std::endl;
+
+    return bmp::write_bmp(im) ? 0 : -1;
 }

@@ -1,9 +1,11 @@
 #include <fstream>
+#include <filesystem>
+#include <iostream>
 
 #include "../include/bitmap.h"
 
 const int FST_HEAD_SIZE = 14;
-const int HIDE_METADATA_SIZE = 52;
+const int HIDDEN_METADATA_SIZE = 52;
 
 namespace bmp {
 
@@ -72,7 +74,7 @@ image read_bmp(const char *filename)
     im.padding = count_padding(im.width * im.channel_count);
 
     im.capacity = static_cast<int64_t>(im.width) * im.height * im.channel_count * 2;
-    if (im.capacity <= HIDE_METADATA_SIZE)
+    if (im.capacity <= HIDDEN_METADATA_SIZE)
         throw bad_format{im.filename, "image size is too small\n"};
 
     int32_t compression = chars_to_int32(im.header.data() + 30);
@@ -85,6 +87,27 @@ image read_bmp(const char *filename)
         throw bad_format{im.filename, "could not read\n"};
 
     return im;
+}
+
+bool write_bmp(image &im)
+{
+    using namespace std::string_literals;
+
+    std::size_t basename_index = im.filename.rfind('/');
+    if (basename_index == std::string::npos)
+        basename_index = 0;
+    else
+        ++basename_index;
+    std::string basename = im.filename.substr(basename_index);
+
+    std::filesystem::create_directories("output_bitmaps"s);
+
+    std::ofstream out("output_bitmaps/"s + basename + ".out"s,
+        std::ios::binary | std::ios::trunc);
+
+    out.write(reinterpret_cast<char *>(im.header.data()), im.header.size());
+    out.write(reinterpret_cast<char *>(im.img_data.data()), im.img_data.size());
+    return out.good();
 }
 
 }
