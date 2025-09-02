@@ -1,25 +1,11 @@
 #include <fstream>
-#include <vector>
+
+#include "../include/bitmap.h"
 
 const int FST_HEAD_SIZE = 14;
 const int HIDE_METADATA_SIZE = 52;
 
 namespace bmp {
-
-struct image {
-    std::string filename;
-    int32_t width;
-    int32_t height;
-    int16_t channel_count;
-    /* in bits */
-    int64_t capacity;
-    int padding;
-
-    std::vector<unsigned char> header;
-    std::vector<unsigned char> img_data;
-
-    image(const char *filename) : filename(filename) {}
-};
 
 struct bad_bmp_format {
     std::string filename;
