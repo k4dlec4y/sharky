@@ -21,6 +21,11 @@ struct image {
     image(const char *filename) : filename(filename) {}
 };
 
+struct bad_format {
+    std::string filename;
+    std::string message;
+};
+
 image read_bmp(const char *filename);
 
 }
