@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+namespace bmp {
+
 struct image {
     std::string filename;
     int32_t width;
@@ -20,5 +22,7 @@ struct image {
 };
 
 image read_bmp(const char *filename);
+
+}
 
 #endif  // BITMAP_H
