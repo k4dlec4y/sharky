@@ -5,7 +5,7 @@
 #include "../include/bitmap.h"
 
 const int FST_HEAD_SIZE = 14;
-const int HIDDEN_METADATA_SIZE = 52;
+const int HIDDEN_METADATA_SIZE = 7;
 
 namespace bmp {
 
@@ -28,6 +28,14 @@ static int count_padding(int width)
     return (4 - width % 4) % 4;
 }
 
+static std::streamsize get_file_size(std::ifstream &file)
+{
+    file.seekg(0, std::ios::end);
+    std::streamsize file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    return file_size;
+}
+
 image read_bmp(const char *filename)
 {
     using namespace std::string_literals;
@@ -39,9 +47,7 @@ image read_bmp(const char *filename)
     if (!input)
         throw bad_format{im.filename, "could not open the file\n"};
 
-    input.seekg(0, std::ios::end);
-    std::streamsize file_size = input.tellg();
-    input.seekg(0, std::ios::beg);
+    std::streamsize file_size = get_file_size(input);
 
     if (file_size < FST_HEAD_SIZE)
         throw bad_format{im.filename, "file is too small to be bmp\n"};
@@ -73,8 +79,9 @@ image read_bmp(const char *filename)
     im.channel_count = bit_count / 8;
     im.padding = count_padding(im.width * im.channel_count);
 
-    im.capacity = static_cast<int64_t>(im.width) * im.height * im.channel_count * 2;
-    if (im.capacity <= HIDDEN_METADATA_SIZE)
+    im.byte_capacity = static_cast<std::size_t>(im.width) * im.height *
+                       im.channel_count / 4;
+    if (im.byte_capacity <= HIDDEN_METADATA_SIZE)
         throw bad_format{im.filename, "image size is too small\n"};
 
     int32_t compression = chars_to_int32(im.header.data() + 30);

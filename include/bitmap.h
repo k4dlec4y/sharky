@@ -11,8 +11,7 @@ struct image {
     int32_t width;
     int32_t height;
     int16_t channel_count;
-    /* in bits */
-    int64_t capacity;
+    std::size_t byte_capacity;
     int padding;
 
     std::vector<unsigned char> header;
