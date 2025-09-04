@@ -62,7 +62,7 @@ int main()
     std::cout << im.img_data.size() << std::endl;
 
     std::size_t data_index = 0;
-    hide_data(im, text, data_index, 136, 0, 8);
+    hide_data(im, text, data_index, 136, 0);
 
     return bmp::write_bmp(im) ? 0 : -1;
 }

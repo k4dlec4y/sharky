@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-constexpr std::size_t HIDDEN_METADATA_SIZE = 9;
+constexpr std::size_t HIDDEN_METADATA_SIZE = 8;
 
 namespace bmp {
 
