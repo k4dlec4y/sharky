@@ -3,6 +3,7 @@
 
 #include "../include/bitmap.h"
 #include "../include/hide.h"
+#include "../include/extract.h"
 
 std::string text =
     "In the realm of programming, clarity and maintainability are paramount. While it may be tempting to write clever or overly compact code, "
@@ -62,7 +63,24 @@ int main()
     std::cout << im.img_data.size() << std::endl;
 
     std::size_t data_index = 0;
-    hide_data(im, text, data_index, 136, 0);
+    std::cout << hide_data(im, text, data_index, 136, 0) << std::endl;
 
-    return bmp::write_bmp(im) ? 0 : -1;
+    bmp::write_bmp(im);
+
+    im = bmp::read_bmp("output_bitmaps/image.bmp.out");
+    std::cout << im.width << std::endl;
+    std::cout << im.height << std::endl;
+    std::cout << im.byte_capacity << std::endl;
+    std::cout << im.padding << std::endl;
+    std::cout << im.img_data.size() << std::endl;
+    std::vector<unsigned char> extracted;
+    auto rv = extract_data(im, extracted, 136);
+    if (!rv) {
+        std::cout << rv.error_message << std::endl;
+        return -1;
+    }
+    for (auto i : extracted) {
+        std::cout << i;
+    }
+    std::cout << std::endl;
 }

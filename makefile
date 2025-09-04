@@ -5,7 +5,7 @@ SRC_DIR = src/
 BUILD_DIR = build/
 TARGET = sharky
 
-SRCS = main.cpp bitmap.cpp hide.cpp
+SRCS = main.cpp bitmap.cpp hide.cpp extract.cpp
 OBJS = $(SRCS:%.cpp=$(BUILD_DIR)/%.o)
 
 all: $(TARGET)

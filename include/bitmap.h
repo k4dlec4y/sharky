@@ -15,6 +15,8 @@ struct image {
     int16_t channel_count;
     std::size_t byte_capacity;
     int padding;
+    /* used for extraction */
+    unsigned char seq;
 
     std::vector<unsigned char> header;
     std::vector<unsigned char> img_data;
