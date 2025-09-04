@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+constexpr std::size_t HIDDEN_METADATA_SIZE = 9;
+
 namespace bmp {
 
 struct image {

@@ -5,7 +5,6 @@
 #include "../include/bitmap.h"
 
 const int FST_HEAD_SIZE = 14;
-const int HIDDEN_METADATA_SIZE = 7;
 
 namespace bmp {
 
