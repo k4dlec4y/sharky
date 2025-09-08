@@ -29,28 +29,24 @@ static int count_padding(int width)
 
 static std::streamsize get_file_size(std::ifstream &file)
 {
+    std::streampos orig = file.tellg();
     file.seekg(0, std::ios::end);
     std::streamsize file_size = file.tellg();
-    file.seekg(0, std::ios::beg);
+    file.seekg(orig, std::ios::beg);
     return file_size;
 }
 
-image read_bmp(const char *filename)
+void read_header(image &im, std::size_t chunk_count)
 {
     using namespace std::string_literals;
 
-    image im(filename);
     im.header.resize(FST_HEAD_SIZE);
 
-    std::ifstream input(im.filename, std::ios::binary);
-    if (!input)
-        throw bad_format{im.filename, "could not open the file\n"};
-
-    std::streamsize file_size = get_file_size(input);
+    std::streamsize file_size = get_file_size(im.in);
 
     if (file_size < FST_HEAD_SIZE)
         throw bad_format{im.filename, "file is too small to be bmp\n"};
-    if (!input.read(reinterpret_cast<char *>(im.header.data()), FST_HEAD_SIZE))
+    if (!im.in.read(reinterpret_cast<char *>(im.header.data()), FST_HEAD_SIZE))
         throw bad_format{im.filename, "could not read\n"};
 
     if (im.header[0] != u'B' || im.header[1] != u'M')
@@ -60,12 +56,12 @@ image read_bmp(const char *filename)
 
     if (chars_to_int32(im.header.data() + 2) != file_size)
         throw bad_format{im.filename, "the actual size and size in bmp "
-                                          "header does not match\n"};
+                                      "header does not match\n"};
 
-    int32_t data_offset = chars_to_int32(im.header.data() + 10);
-    im.header.resize(data_offset);
-    if (!input.read(reinterpret_cast<char *>(im.header.data()) + FST_HEAD_SIZE,
-                    data_offset - FST_HEAD_SIZE))
+    im.data_offset = chars_to_int32(im.header.data() + 10);
+    im.header.resize(im.data_offset);
+    if (!im.in.read(reinterpret_cast<char *>(im.header.data()) + FST_HEAD_SIZE,
+                    im.data_offset - FST_HEAD_SIZE))
         throw bad_format{im.filename, "could not read\n"};
 
     im.width = chars_to_int32(im.header.data() + 18);
@@ -78,41 +74,31 @@ image read_bmp(const char *filename)
     im.channel_count = bit_count / 8;
     im.padding = count_padding(im.width * im.channel_count);
 
-    im.byte_capacity = static_cast<std::size_t>(im.width) * im.height *
-                       im.channel_count / 4;
-    if (im.byte_capacity <= HIDDEN_METADATA_SIZE)
+    im.byte_capacity = (static_cast<std::size_t>(im.width) * im.channel_count
+                        - im.padding) * im.height / chunk_count;
+    if (im.byte_capacity <= HIDDEN_METADATA_SIZE * chunk_count)
         throw bad_format{im.filename, "image size is too small\n"};
 
     int32_t compression = chars_to_int32(im.header.data() + 30);
     if (compression)
         throw bad_format{im.filename, "image is compressed\n"};
-
-    std::size_t img_size = file_size - data_offset;
-    im.img_data.resize(img_size);
-    if (input.read(reinterpret_cast<char *>(im.img_data.data()), img_size).fail())
-        throw bad_format{im.filename, "could not read\n"};
-
-    return im;
 }
 
-bool write_bmp(image &im)
+bool image::open_ofstream()
 {
     using namespace std::string_literals;
 
-    std::size_t basename_index = im.filename.rfind('/');
+    std::size_t basename_index = filename.rfind('/');
     if (basename_index == std::string::npos)
         basename_index = 0;
     else
         ++basename_index;
-    std::string basename = im.filename.substr(basename_index);
+    std::string basename = filename.substr(basename_index);
 
     std::filesystem::create_directories("output_bitmaps"s);
 
-    std::ofstream out("output_bitmaps/"s + basename + ".out"s,
+    out.open("output_bitmaps/"s + basename + ".out"s,
         std::ios::binary | std::ios::trunc);
-
-    out.write(reinterpret_cast<char *>(im.header.data()), im.header.size());
-    out.write(reinterpret_cast<char *>(im.img_data.data()), im.img_data.size());
     return out.good();
 }
 
