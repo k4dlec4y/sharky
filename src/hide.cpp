@@ -5,32 +5,14 @@
 
 #include "../include/bitmap.h"
 #include "../include/hide.h"
-
-struct splitting_info {
-    unsigned char split_size;
-    std::vector<unsigned char> chunks;
-    unsigned char mask;
-    unsigned char erase_mask;
-
-    splitting_info(unsigned char split_size) :
-        split_size(split_size),
-        chunks(8 / split_size + (8 % split_size != 0)),
-        mask(split_size < 8 ? (1 << split_size) - 1 : 0xffu) {
-        erase_mask = ~mask;
-    }
-};
-
-struct padding_info {
-    int32_t x{0};
-    std::size_t skip{0};
-};
+#include "../include/info_structs.h"
 
 static void split_byte(splitting_info &s, unsigned char to_hide)
 {
     assert(s.split_size <= 8);
 
     for (auto it = s.chunks.begin(); it != s.chunks.end(); ++it) {
-        *it = to_hide & s.mask;
+        *it = to_hide & s.extract_mask;
         to_hide >>= s.split_size;
     }
 }

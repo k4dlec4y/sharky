@@ -4,6 +4,7 @@
 
 #include "../include/bitmap.h"
 #include "../include/extract.h"
+#include "../include/info_structs.h"
 
 static std::size_t min(std::size_t a, std::size_t b)
 {
