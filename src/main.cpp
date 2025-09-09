@@ -3,7 +3,8 @@
 
 #include "../include/bitmap.h"
 #include "../include/hide.h"
-// #include "../include/extract.h"
+#include "../include/extract.h"
+#include "../include/info_structs.h"
 
 std::string text =
     "In the realm of programming, clarity and maintainability are paramount. While it may be tempting to write clever or overly compact code, "
@@ -61,23 +62,28 @@ int main()
     std::cout << im.height << std::endl;
     std::cout << im.byte_capacity << std::endl;
     std::cout << im.padding << std::endl;
+    std::cout << "datasize LL "<< im.byte_capacity - 8 << std::endl;
+    std::cout << std::endl;
 
     hide_data(im, std::string_view(text.data(), im.byte_capacity - 8), 136, 0);
 
-    /*im = bmp::read_bmp("output_bitmaps/image.bmp.out");
-    std::cout << im.width << std::endl;
-    std::cout << im.height << std::endl;
-    std::cout << im.byte_capacity << std::endl;
-    std::cout << im.padding << std::endl;
-    std::cout << im.img_data.size() << std::endl;
-    std::vector<unsigned char> extracted;
-    auto rv = extract_data(im, extracted, 136);
+    bmp::image im2("output_bitmaps/image.bmp.out");
+    bmp::read_header(im2, 4);
+    padding_info p;
+    auto rv = read_hidden_header(im2, p);
     if (!rv) {
         std::cout << rv.error_message << std::endl;
         return -1;
     }
-    for (auto i : extracted) {
-        std::cout << i;
+    std::cout << "id " << +im2.id << std::endl;
+    std::cout << "seq " << +im2.seq << std::endl;
+    std::cout << "datasize " << rv.data_size << std::endl;
+
+    std::vector<unsigned char> target(rv.data_size);
+    int rv2 = !extract_data(im2, target, 0, rv.data_size, p);
+    for (auto ch : target) {
+        std::cout << ch;
     }
-    std::cout << std::endl;*/
+    std::cout << std::endl;
+    return rv2;
 }

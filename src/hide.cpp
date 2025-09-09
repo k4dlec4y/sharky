@@ -12,12 +12,12 @@ static void split_byte(splitting_info &s, unsigned char to_hide)
     assert(s.split_size <= 8);
 
     for (auto it = s.chunks.begin(); it != s.chunks.end(); ++it) {
-        *it = to_hide & s.extract_mask;
+        *it = to_hide & s.mask;
         to_hide >>= s.split_size;
     }
 }
 
-static void hide_chunks(splitting_info &s, bmp::image &im, char *buffer,
+static void hide_chunks(splitting_info &s, const bmp::image &im, char *buffer,
     padding_info &p)
 {
     for (std::size_t i = 0; i < s.chunks.size(); ++i) {
