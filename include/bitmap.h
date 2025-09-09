@@ -30,12 +30,10 @@ struct image {
     image(const char *filename) : filename(filename),
         in(filename, std::ios::binary) {}
 
-    bool open_ofstream();
-};
+    image(std::string filename) : filename(filename),
+        in(filename, std::ios::binary) {}
 
-struct bad_format {
-    std::string filename;
-    std::string message;
+    bool open_ofstream();
 };
 
 /**
@@ -46,13 +44,15 @@ struct bad_format {
  * @param chunk_count amount of bytes needed to hide a single byte into
  * the image, used to count byte_capacity of the image
  * 
+ * @return `true` on success, `false` otherwise
+ * 
  * @note image struct `im` must have opened ifstream `in` (this should be
  * guaranteed by the image constructor) currently pointing at the beginning
  * of the file. After the call, ifstream `in` is pointing at beginning
  * of bmp's data section.
  * 
  */
-void read_header(image &im, std::size_t chunk_count);
+bool read_header(image &im, std::size_t chunk_count);
 
 }
 
