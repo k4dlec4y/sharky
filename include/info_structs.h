@@ -5,13 +5,17 @@
 #include <cstdint>
 
 struct splitting_info {
-    unsigned char split_size;
-    std::vector<unsigned char> chunks;
-    unsigned char mask;
-    unsigned char erase_mask;
+    /* how many bits of byte will store hidden data */
+    uint8_t split_size;
+    /* contains the splitted byte in multiple bytes */
+    std::vector<uint8_t> chunks;
+    uint8_t mask;
+    uint8_t erase_mask;
 
-    splitting_info(unsigned char split_size) :
+    splitting_info(uint8_t split_size) :
         split_size(split_size),
+        /* + (8 % split_size != 0) because there might be 
+           more split_size options than 2^X in the future */
         chunks(8 / split_size + (8 % split_size != 0)),
         mask(split_size < 8 ? (1 << split_size) - 1 : 0xffu) {
         erase_mask = ~mask;
@@ -19,7 +23,9 @@ struct splitting_info {
 };
 
 struct padding_info {
+    /* current row position in the image while processing */
     int32_t x{0};
+    /* if > 0, we shouldn't hide/extract data */
     std::size_t skip{0};
 };
 
