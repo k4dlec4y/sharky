@@ -14,9 +14,7 @@ struct splitting_info {
 
     splitting_info(uint8_t split_size) :
         split_size(split_size),
-        /* + (8 % split_size != 0) because there might be 
-           more split_size options than 2^X in the future */
-        chunks(8 / split_size + (8 % split_size != 0)),
+        chunks((8 + chunk_size - 1) / chunk_size),
         mask(split_size < 8 ? (1 << split_size) - 1 : 0xffu) {
         erase_mask = ~mask;
     }
