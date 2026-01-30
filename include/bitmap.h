@@ -3,17 +3,69 @@
 
 #include <string>
 #include <vector>
+#include <span>
 #include <fstream>
 
 #include "../include/configuration.h"
 
 namespace bmp {
 
+struct image {
+    std::string filename;
+    std::ifstream input;
+    std::ofstream output;
+    uint32_t width;
+    uint32_t height;
+    /* 3 for BGR, 4 for BGRA*/
+    uint16_t channel_count;
+
+    uint32_t data_offset;
+    /* how many bytes can be hidden in total */
+    std::size_t byte_capacity;
+    /* this excludes the size of metadata! */
+    std::size_t hidden_data_size{0};
+    /* bitmap padding */
+    int padding;
+
+    /* used for extraction */
+    uint8_t id;
+    uint8_t seq;
+
+    std::vector<uint8_t> header;
+
+    image(const char *filename) : filename(filename),
+        input(filename, std::ios::binary) {}
+
+    image(std::string filename) : filename(filename),
+        input(filename, std::ios::binary) {}
+
+    /**
+     * Opens an output stream for image '.../image.bmp' as
+     * './output_bitmaps/image.bmp.out'
+     * 
+     * @return `true` on success, `false` otherwise
+    */
+    bool open_ofstream();
+
+    /**
+     * Sorts according to member variable seq,
+     * useful when extracting data from images
+     */
+    auto operator<=>(const bmp::image& rhs) const;
+
+    /**
+     * Moves reading position of the input stream
+     * to data offset.
+     */
+    void set_data_start();
+};
+
 const int smaller_header_size = 14;
 
 class chunker {
 public:
-    chunker(std::span<uint8_t> data, uint8_t chunk_size);
+    chunker(std::span<uint8_t> data, uint8_t chunk_size,
+        bool is_get = true);
     bool get_chunk(uint8_t& chunk);
     bool send_chunk(uint8_t chunk);
 
@@ -56,58 +108,8 @@ private:
 
     /* bitmap padding */
     /* current row position in the image while processing */
-    int32_t x{0};
+    uint32_t x{0};
     std::size_t skip{0};
-};
-
-struct image {
-    std::string filename;
-    std::ifstream input;
-    std::ofstream output;
-    int32_t width;
-    int32_t height;
-    /* 3 for BGR, 4 for BGRA*/
-    int16_t channel_count;
-
-    int32_t data_offset;
-    /* how many bytes can be hidden in total */
-    std::size_t byte_capacity;
-    /* this excludes the size of metadata! */
-    std::size_t hidden_data_size{0};
-    /* bitmap padding */
-    int padding;
-
-    /* used for extraction */
-    uint8_t id;
-    uint8_t seq;
-
-    std::vector<uint8_t> header;
-
-    image(const char *filename) : filename(filename),
-        input(filename, std::ios::binary) {}
-
-    image(std::string filename) : filename(filename),
-        input(filename, std::ios::binary) {}
-
-    /**
-     * Opens an output stream for image '.../image.bmp' as
-     * './output_bitmaps/image.bmp.out'
-     * 
-     * @return `true` on success, `false` otherwise
-    */
-    bool open_ofstream();
-
-    /**
-     * Sorts according to member variable seq,
-     * useful when extracting data from images
-     */
-    auto operator<=>(const bmp::image& rhs) const;
-
-    /**
-     * Moves reading position of the input stream
-     * to data offset.
-     */
-    void set_data_start();
 };
 
 /**

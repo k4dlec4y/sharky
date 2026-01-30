@@ -15,10 +15,8 @@ static bool extract_bytes(
     auto size
 ) {
     uint8_t chunk;
-    for (auto _ = 0; _ < size * (8 / chunk_size); ++_) {
+    for (auto _ = 0u; _ < size * (8 / chunk_size); ++_) {
         if (!buffer.extract_chunk(chunk) || !chunker.send_chunk(chunk)) {
-            std::cerr << "image " << im.filename
-                      << "run out of bytes too early!\n";
             return false;
         }
     }
@@ -29,15 +27,19 @@ bool extract_hidden_metadata(
     bmp::image& im,
     bmp::image_buffer& buffer
 ) {
-    std::vector<uint8_t> data{hidden_metadata_size};
-    bmp::chunker chunker{std::span(data.data(), data.size()), chunk_size};
+    std::vector<uint8_t> data(hidden_metadata_size);
+    bmp::chunker chunker{std::span(data.data(), data.size()), chunk_size, false};
 
-    if (!extract_bytes(buffer, chunker, hidden_metadata_size))
+    if (!extract_bytes(buffer, chunker, hidden_metadata_size)) {
+        std::cerr << "image " << im.filename
+                  << " run out of bytes too early!\n";
         return false;
+    }
 
     if (data[0] != 'S' || data[1] != 'H') {
         std::cerr << "image " << im.filename
-                  << " has invalid sharky magic number!";
+                  << " has invalid sharky magic number! ("
+                  << int(data[0]) << ", " << int(data[1]) << ")\n";
         return false;
     }
 
@@ -55,21 +57,26 @@ bool extract_data(
     bmp::image_buffer& buffer,
     std::span<uint8_t> data
 ) {
-    bmp::chunker chunker {data, chunk_size};
-    return extract_bytes(buffer, chunker, data.size());
+    bmp::chunker chunker {data, chunk_size, false};
+    if (!extract_bytes(buffer, chunker, data.size())) {
+        std::cerr << "image " << im.filename
+                  << " run out of bytes too early!\n";
+        return false;
+    }
+    return true;
 }
 
-bool extract(
+int extract(
     std::vector<bmp::image>& images,
     std::vector<uint8_t>& data
 ) {
     std::vector<bmp::image_buffer> buffers{};
     auto data_size = 0;
 
-    for (auto i = 0; i < images.size(); ++i) {
+    for (auto i = 0u; i < images.size(); ++i) {
         buffers.emplace_back(images[i], chunk_size);
-        if (!extract_hidden_metadata(images[i], buffers[i]));
-            return false;
+        if (!extract_hidden_metadata(images[i], buffers[i]))
+            return 1;
         data_size += images[i].hidden_data_size;
     }
 
@@ -78,25 +85,25 @@ bool extract(
     std::ranges::sort(indx, {},
                       [&](size_t i) { return images[i].seq; });
 
-    for (auto i = 0; i < images.size(); ++i) {
+    for (auto i = 0u; i < images.size(); ++i) {
         auto& im = images[indx[i]];
         if (im.seq != i) {
             std::cerr << "image " << im.filename << " has invalid number,"
                       << "it should be " << i << "but its seq number is "
                       << im.seq;
-            return false;
+            return 1;
         }
     }
 
     data.resize(data_size);
     auto data_index = 0;
-    for (auto i = 0; i < images.size(); ++i) {
+    for (auto i = 0u; i < images.size(); ++i) {
         auto j = indx[i];
         auto n = images[j].hidden_data_size;
         if (!extract_data(images[j], buffers[j],
                           std::span(data.data() + data_index, n)))
-            return false;
+            return 1;
         data_index += n;
     }
-    return true;
+    return 0;
 }

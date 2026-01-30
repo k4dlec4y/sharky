@@ -43,9 +43,9 @@ bool extract_data(
  * @param data reference to vector of uchars, where data will
  * be stored
  * 
- * @return `true` on success, `false` otherwise
+ * @return `0` on success, `1` otherwise
  */
-bool extract(
+int extract(
     std::vector<bmp::image>& images,
     std::vector<uint8_t>& data
 );

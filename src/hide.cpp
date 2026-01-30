@@ -1,6 +1,7 @@
 #include <span>
 #include <iostream>
 #include <string>
+#include <algorithm>
 #include <filesystem>
 
 #include "../include/bitmap.h"
@@ -12,6 +13,7 @@ bool hide_data(
     uint8_t id,
     uint8_t seq
 ) {
+    /* this should never happen, handled in bitmap files */
     if (im.byte_capacity < hidden_metadata_size + to_hide.size())
         return false;
 
@@ -20,7 +22,7 @@ bool hide_data(
 
     bmp::image_buffer buffer{im, chunk_size};
 
-    std::vector<uint8_t> metadata(hidden_metadata_size);
+    std::vector<uint8_t> metadata{};
     /* magic number for sharky images */
     metadata.emplace_back(static_cast<uint8_t>('S'));
     metadata.emplace_back(static_cast<uint8_t>('H'));
@@ -29,7 +31,7 @@ bool hide_data(
     metadata.emplace_back(seq);
 
     auto data_size = static_cast<uint32_t>(to_hide.size());
-    for (auto _ = 0; _ < sizeof(uint32_t); ++_) {
+    for (auto _ = 0u; _ < sizeof(uint32_t); ++_) {
         metadata.emplace_back(static_cast<uint8_t>(data_size & 0xffu));
         data_size >>= 8;
     }
@@ -42,7 +44,7 @@ bool hide_data(
             return false;
         }
     }
-
+ 
     bmp::chunker data_chnkr{to_hide, chunk_size};
     while (data_chnkr.get_chunk(chunk)) {
         if (!buffer.hide_chunk(chunk)) {
@@ -57,33 +59,37 @@ bool hide_data(
     return true;
 }
 
-int hide(std::vector<bmp::image> &images, std::string message_path) {
+int hide(std::vector<bmp::image> &images, std::string data_path) {
 
-    auto data_size = std::filesystem::file_size(message_path);
-    std::ifstream message_ifstream{message_path, std::ios::binary};
+    auto data_size = std::filesystem::file_size(data_path);
+    std::ifstream data_ifstream{data_path, std::ios::binary};
 
-    std::vector<uint8_t> message(data_size);
-    message_ifstream.read(reinterpret_cast<char*>(message.data()), data_size);
-    std::span span(message);
+    std::vector<uint8_t> data(data_size);
+    data_ifstream.read(reinterpret_cast<char*>(data.data()), data_size);
+    std::span span(data);
 
     /* will become randomly generated later */
     uint8_t id = 137u;
 
     uint8_t seq = 0u;
-    auto message_index = 0ul;
-    for (; message_index < data_size && seq < images.size(); ++seq) {
+    auto data_index = 0ul;
+
+    for (; data_index < data_size && seq < images.size(); ++seq) {
         auto capacity = images[seq].byte_capacity - hidden_metadata_size;
-        if (!hide_data(images[seq], span.subspan(message_index, capacity), id, seq))
+        auto sspan_size = std::min(capacity, data_size - data_index);
+        std::span data_part = span.subspan(data_index, sspan_size);
+
+        if (!hide_data(images[seq], data_part, id, seq))
             return 2;
-        message_index += capacity;
+        data_index += capacity;
     }
     for (; seq < images.size(); ++seq) {
         std::cout << "image " << images[seq].filename << " was not"
             "neccessary to hide data\n";
     }
 
-    if (message_index < data_size) {
-        std::cerr << "only first " << message_index << "bytes were hidden,"
+    if (data_index < data_size) {
+        std::cerr << "only first " << data_index << "bytes were hidden,"
             " please use more or larger images\n";
         return 1;
     }

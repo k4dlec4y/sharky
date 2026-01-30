@@ -1,77 +1,89 @@
 #include <iostream>
 #include <string>
+#include <string_view>
 
+#include "../include/configuration.h"
 #include "../include/bitmap.h"
 #include "../include/hide.h"
 #include "../include/extract.h"
-#include "../include/info_structs.h"
 
-const int NO_MODE = 0;
-const int HIDE = 1;
-const int EXTRACT = 2;
-const std::size_t CHUNK_COUNT = 4;
+enum mode { NO_MODE, HIDE, EXTRACT };
+constexpr auto cells_per_byte = 8 / chunk_size;
 
-int process_args(std::vector<std::string> &args, std::vector<bmp::image> &images,
-    std::string &message_filename)
-{
-    int mode = NO_MODE;
-    for (std::size_t i = 0; i < args.size(); ++i) {
-        if (args[i] == "--hide" || args[i] == "-h") {
-            if (mode == EXTRACT) {
-                std::cerr << "cannot use hide and extract at the same time" << '\n';
-                return 0;
+mode process_args(
+    std::vector<std::string> &args,
+    std::vector<bmp::image> &images,
+    std::string &data_filename
+) {
+    using namespace std::literals;
+    mode m = mode::NO_MODE;
+
+    for (auto i = 0u; i < args.size(); ++i) {
+
+        if (args[i] == "--hide"sv || args[i] == "-h"sv) {
+            if (m == mode::EXTRACT) {
+                std::cerr << "cannot use hide and extract at the same time\n";
+                return mode::NO_MODE;
             }
-            mode = HIDE;
-        } else if (args[i] == "--extract" || args[i] == "-e") {
-            if (mode == HIDE) {
-                std::cerr << "cannot use hide and extract at the same time" << '\n';
-                return 0;
+            m = mode::HIDE;
+        } else if (args[i] == "--extract"sv || args[i] == "-e"sv) {
+            if (m == mode::HIDE) {
+                std::cerr << "cannot use hide and extract at the same time\n";
+                return mode::NO_MODE;
             }
-            mode = EXTRACT;
-        } else if (args[i] == "--file" || args[i] == "-f") {
+            m = mode::EXTRACT;
+        } else if (args[i] == "--file"sv || args[i] == "-f"sv) {
             if (++i == args.size()) {
-                std::cerr << "-f or --file was used as the last argument" << '\n';
-                return 0;
+                std::cerr << "-f or --file was used as the last argument\n";
+                return mode::NO_MODE;
             }
-            message_filename = args[i];
+            data_filename = args[i];
         } else {
             images.emplace_back(bmp::image(args[i]));
 
-            if (!images.back().in.is_open()) {
-                std::cerr << "image " << args[i] << " could not be opened" << '\n';
+            if (!images.back().input.is_open()) {
+                std::cerr << "image " << args[i] << " could not be opened\n";
                 images.pop_back();
-                continue;
-            } else if (!bmp::read_header(images.back(), CHUNK_COUNT)) {
+            } else if (!bmp::load_header(images.back(), cells_per_byte)) {
+                /* error line is printed in load_header() */
                 images.pop_back();
-                continue;
+            } else {
+                std::cout << "image " << args[i] << " was opened with "
+                          << "byte_capacity: "
+                          << images.back().byte_capacity << '\n';
             }
-
-            std::cout << "image " << args[i] << " was successfully opened "
-                "with byte_capacity: " << images.back().byte_capacity << '\n';
         }
     }
-    if (mode == 0)
-        std::cerr << "no mode was selected\n";
-    if (message_filename == "") {
-        std::cerr << "could not find message file -> tag one with -f/--file\n";
-        return NO_MODE;
+    if (m == mode::NO_MODE) {
+        std::cerr << "no mode was selected\n";   
+        return mode::NO_MODE;     
+    } else if (data_filename == "") {
+        std::cerr << "could not find message select it with -f/--file\n";
+        return mode::NO_MODE;
+    } else if (images.size() == 0) {
+        std::cerr << "no proper images to hide data were supplied\n";
+        return mode::NO_MODE;   
     }
-        
-    return mode;
+    return m;
 }
 
 int main(int argc, char *argv[])
 {
     std::vector<std::string> args(argv + 1, argv + argc);
-    std::string message("");
     std::vector<bmp::image> images;
 
-    switch (process_args(args, images, message))
+    std::string data_filename("");
+    std::vector<uint8_t> data;
+    
+    switch (process_args(args, images, data_filename))
     {
-    case HIDE:
-        return 0;
-    case EXTRACT:
-        return 0;
+    case mode::HIDE:
+        return hide(images, data_filename);
+    case mode::EXTRACT:
+        if (extract(images, data) != 0)
+            return 1;
+        return std::cout.write(reinterpret_cast<char *>(data.data()),
+                               data.size()).fail();
     default:
         return 1;
     }
