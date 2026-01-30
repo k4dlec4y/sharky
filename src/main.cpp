@@ -73,17 +73,13 @@ int main(int argc, char *argv[])
     std::vector<bmp::image> images;
 
     std::string data_filename("");
-    std::vector<uint8_t> data;
     
     switch (process_args(args, images, data_filename))
     {
     case mode::HIDE:
         return hide(images, data_filename);
     case mode::EXTRACT:
-        if (extract(images, data) != 0)
-            return 1;
-        return std::cout.write(reinterpret_cast<char *>(data.data()),
-                               data.size()).fail();
+        return extract(images, data_filename);
     default:
         return 1;
     }

@@ -68,7 +68,7 @@ bool extract_data(
 
 int extract(
     std::vector<bmp::image>& images,
-    std::vector<uint8_t>& data
+    std::string data_filename
 ) {
     std::vector<bmp::image_buffer> buffers{};
     auto data_size = 0;
@@ -95,7 +95,7 @@ int extract(
         }
     }
 
-    data.resize(data_size);
+    std::vector<uint8_t> data(data_size);
     auto data_index = 0;
     for (auto i = 0u; i < images.size(); ++i) {
         auto j = indx[i];
@@ -105,5 +105,10 @@ int extract(
             return 1;
         data_index += n;
     }
-    return 0;
+    std::ofstream data_out{data_filename, std::ios::binary};
+    if (data_out.fail())
+        return 1;
+
+    return data_out.write(reinterpret_cast<char *>(data.data()),
+                          data.size()).fail();
 }
