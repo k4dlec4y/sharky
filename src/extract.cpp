@@ -1,94 +1,102 @@
 #include <vector>
+#include <span>
+#include <tuple>
+#include <algorithm>
 #include <ranges>
-#include <cassert>
+#include <numeric>
+#include <iostream>
 
 #include "../include/bitmap.h"
 #include "../include/extract.h"
-#include "../include/info_structs.h"
 
-static unsigned char chunks_to_byte(splitting_info &s)
-{
-    unsigned char rv = 0;
-    for (auto chunk : std::ranges::reverse_view(s.chunks)) {
-        rv <<= s.split_size;
-        rv |= chunk;
-    }
-    return rv;
-}
-
-static void extract_chunks(splitting_info &s, const bmp::image &im,
-    char *buffer, padding_info &p)
-{
-    for (std::size_t i = 0; i < s.chunks.size(); ++i) {
-        /* padding */
-        if (p.x >= im.width * im.channel_count) {
-            p.skip = im.padding;
-            p.x = -1;
+static bool extract_bytes(
+    bmp::image_buffer& buffer,
+    bmp::chunker& chunker,
+    auto size
+) {
+    uint8_t chunk;
+    for (auto _ = 0; _ < size * (8 / chunk_size); ++_) {
+        if (!buffer.extract_chunk(chunk) || !chunker.send_chunk(chunk)) {
+            std::cerr << "image " << im.filename
+                      << "run out of bytes too early!\n";
+            return false;
         }
-        ++p.x;
+    }
+    return true;
+}
 
-        if (p.skip > 0) {
-            --p.skip;
-            continue;
+bool extract_hidden_metadata(
+    bmp::image& im,
+    bmp::image_buffer& buffer
+) {
+    std::vector<uint8_t> data{hidden_metadata_size};
+    bmp::chunker chunker{std::span(data.data(), data.size()), chunk_size};
+
+    if (!extract_bytes(buffer, chunker, hidden_metadata_size))
+        return false;
+
+    if (data[0] != 'S' || data[1] != 'H') {
+        std::cerr << "image " << im.filename
+                  << " has invalid sharky magic number!";
+        return false;
+    }
+
+    im.id = data[2];
+    im.seq = data[3];
+
+    im.hidden_data_size = 0u;
+    for (std::size_t i = 0; i < 4; ++i)
+        im.hidden_data_size |= data[4 + i] << (i * 8);
+    return true;
+}
+
+bool extract_data(
+    bmp::image& im,
+    bmp::image_buffer& buffer,
+    std::span<uint8_t> data
+) {
+    bmp::chunker chunker {data, chunk_size};
+    return extract_bytes(buffer, chunker, data.size());
+}
+
+bool extract(
+    std::vector<bmp::image>& images,
+    std::vector<uint8_t>& data
+) {
+    std::vector<bmp::image_buffer> buffers{};
+    auto data_size = 0;
+
+    for (auto i = 0; i < images.size(); ++i) {
+        buffers.emplace_back(images[i], chunk_size);
+        if (!extract_hidden_metadata(images[i], buffers[i]));
+            return false;
+        data_size += images[i].hidden_data_size;
+    }
+
+    std::vector<size_t> indx(images.size());
+    std::iota(indx.begin(), indx.end(), 0);
+    std::ranges::sort(indx, {},
+                      [&](size_t i) { return images[i].seq; });
+
+    for (auto i = 0; i < images.size(); ++i) {
+        auto& im = images[indx[i]];
+        if (im.seq != i) {
+            std::cerr << "image " << im.filename << " has invalid number,"
+                      << "it should be " << i << "but its seq number is "
+                      << im.seq;
+            return false;
         }
-        s.chunks[i] = *(buffer + i) & s.mask;
     }
-}
 
-static unsigned char extract_to_byte(splitting_info &s, const bmp::image &im,
-    char *buffer, padding_info &p)
-{
-    extract_chunks(s, im, buffer, p);
-    return chunks_to_byte(s);
-}
-
-extracted read_hidden_header(bmp::image &im, padding_info &p)
-{
-    splitting_info s(2);
-    char buffer[256];
-    extracted rv;
-
-    std::size_t hm_size_in_bytes = HIDDEN_METADATA_SIZE * s.chunks.size();
-    if (!im.in.read(buffer, hm_size_in_bytes)) {
-        rv.error_message = "could not read the hidden header";
-        return rv;
+    data.resize(data_size);
+    auto data_index = 0;
+    for (auto i = 0; i < images.size(); ++i) {
+        auto j = indx[i];
+        auto n = images[j].hidden_data_size;
+        if (!extract_data(images[j], buffers[j],
+                          std::span(data.data() + data_index, n)))
+            return false;
+        data_index += n;
     }
-    if (extract_to_byte(s, im, buffer, p) != 'S') {
-        rv.error_message = "invalid magic number";
-        return rv;
-    }
-    if (extract_to_byte(s, im, buffer + s.chunks.size(), p) != 'H') {
-        rv.error_message = "invalid magic number";
-        return rv;
-    }
-    im.id = extract_to_byte(s, im, buffer + 2 * s.chunks.size(), p);
-    im.seq = extract_to_byte(s, im, buffer + 3 * s.chunks.size(), p);
-
-    for (std::size_t i = 0; i < 4; ++i) {
-        rv.data_size |= extract_to_byte(s, im,
-                            buffer + (4 + i) * s.chunks.size(), p) << i * 8;
-    }
-    return rv;
-}
-
-bool extract_data(bmp::image &im, std::vector<unsigned char> &data,
-    std::size_t data_index, std::size_t data_end_index, padding_info &p)
-{
-    splitting_info s(2);
-    char buffer[256];
-
-    std::size_t bytes = 0;
-    while (data_index < data_end_index &&
-           (bytes = im.in.read(buffer, sizeof buffer).gcount()) > 0) {
-
-        for (std::size_t i = 0;
-             i + s.chunks.size() - 1 < bytes; i += s.chunks.size()) {
-            if (data_index >= data_end_index)
-                return true;
-
-            data[data_index++] = extract_to_byte(s, im, buffer + i, p);
-        }
-        im.in.seekg(-(bytes % s.chunks.size()), std::ios::cur);
-    }
-    return data_index == data_end_index;
+    return true;
 }

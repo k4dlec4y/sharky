@@ -1,6 +1,8 @@
 #ifndef HIDE_H
 #define HIDE_H
 
+#include <span>
+
 /**
  * @brief Hides data part into a single image.
  * 
@@ -11,8 +13,12 @@
  * 
  * @return `true` on success, `false` on failure
  */
-bool hide_data(bmp::image &im, std::string_view to_hide, uint8_t id,
-    uint8_t seq);
+bool hide_data(
+    bmp::image &im,
+    std::span<uint8_t> to_hide,
+    uint8_t id,
+    uint8_t seq
+);
 
 /**
  * @brief Hides message (data) from file into images.
