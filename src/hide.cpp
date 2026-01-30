@@ -40,7 +40,9 @@ bool hide_data(
     bmp::chunker metadata_chnkr{std::span(metadata.data(), metadata.size()), chunk_size};
     while (metadata_chnkr.get_chunk(chunk)) {
         if (!buffer.hide_chunk(chunk)) {
-            std::cerr << "unexpected error - image file is corrupted\n";
+            std::cerr << "image file " << im.filename
+                      << " is smaller than expected or there is not enough space "
+                      << "for altered image on disk (io error)\n";
             return false;
         }
     }
@@ -48,7 +50,9 @@ bool hide_data(
     bmp::chunker data_chnkr{to_hide, chunk_size};
     while (data_chnkr.get_chunk(chunk)) {
         if (!buffer.hide_chunk(chunk)) {
-            std::cerr << "unexpected error - image file is corrupted\n";
+            std::cerr << "image file " << im.filename
+                      << " is smaller than expected or there is not enough space "
+                      << "for altered image on disk (io error)\n";
             return false;
         }
     }
@@ -84,13 +88,14 @@ int hide(std::vector<bmp::image> &images, std::string data_path) {
         data_index += capacity;
     }
     for (; seq < images.size(); ++seq) {
-        std::cout << "image " << images[seq].filename << " was not"
-            "neccessary to hide data\n";
+        std::cout << "image " << images[seq].filename
+                  << " was not neccessary to hide data\n";
     }
 
     if (data_index < data_size) {
-        std::cerr << "only first " << data_index << "bytes were hidden,"
-            " please use more or larger images\n";
+        std::cerr << "only first " << data_index << " bytes were hidden, "
+                  << "please use more or larger images ("
+                  << data_size << " capacity is needed)\n";
         return 1;
     }
     return 0;

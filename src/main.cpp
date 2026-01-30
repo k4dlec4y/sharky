@@ -48,9 +48,9 @@ mode process_args(
                 /* error line is printed in load_header() */
                 images.pop_back();
             } else {
-                std::cout << "image " << args[i] << " was opened with "
-                          << "byte_capacity: "
-                          << images.back().byte_capacity << '\n';
+                std::cout << "image " << args[i]
+                          << " was opened with byte_capacity: "
+                          << images.back().byte_capacity - hidden_metadata_size << '\n';
             }
         }
     }

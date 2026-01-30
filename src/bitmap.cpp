@@ -188,12 +188,12 @@ bool load_header(image &im, std::size_t cells_per_byte) {
     }
     if (im.header[0] != 'B' || im.header[1] != 'M') {
         std::cerr << "file " << im.filename << " has invalid magic number to be"
-            " bmp file: " << im.header[0] << im.header[1] << '\n';
+                  << " bmp file: " << im.header[0] << im.header[1] << '\n';
         return false;
     }
     if (to_uint32(im.header.data() + 2) != file_size) {
         std::cerr << "file " << im.filename << " - the actual size and size "
-            "in bmp header does not match\n";
+                  << "in bmp header does not match\n";
         return false;
     }
     im.data_offset = to_uint32(im.header.data() + 10);
@@ -209,7 +209,7 @@ bool load_header(image &im, std::size_t cells_per_byte) {
     uint16_t bit_count = to_uint16(im.header.data() + 28);
     if (bit_count != 24 && bit_count != 32) {
         std::cerr << "file " << im.filename << " has invalid bit count "
-            "for single pixel, use 24/32\n";
+                  << "for single pixel, use 24/32\n";
         return false;
     }
     im.channel_count = bit_count / 8;
