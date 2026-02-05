@@ -1,3 +1,4 @@
+#include <cassert>
 #include <vector>
 #include <span>
 #include <tuple>
@@ -70,6 +71,7 @@ int extract(
     std::vector<bmp::image>& images,
     std::string data_filename
 ) {
+    assert(images.size() > 0);
     std::vector<bmp::image_buffer> buffers{};
     auto data_size = 0;
 
@@ -88,9 +90,19 @@ int extract(
     for (auto i = 0u; i < images.size(); ++i) {
         auto& im = images[indx[i]];
         if (im.seq != i) {
-            std::cerr << "image " << im.filename << " has invalid number,"
-                      << "it should be " << i << "but its seq number is "
+            std::cerr << "image " << im.filename << " has invalid seq number,"
+                      << "it should be " << i << " but its seq number is "
                       << im.seq;
+            return 1;
+        }
+    }
+
+    uint8_t id = images[indx[0]].id;
+    for (auto &im : images) {
+        if (im.id != id) {
+            std::cerr << "image " << im.filename << " has invalid id number,"
+                      << "id of first image in sequence is " << id
+                      << " but its seq number is "<< im.seq;
             return 1;
         }
     }
