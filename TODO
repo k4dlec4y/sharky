@@ -1,5 +1,4 @@
 -add check for equal `id` of hidden images
--add randomly generated `id`
 -add better (from cmd) customization of chunk_size
 
 -add parallel processing support

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <random>
 #include <filesystem>
 
 #include "../include/bitmap.h"
@@ -63,6 +64,13 @@ bool hide_data(
     return true;
 }
 
+static uint8_t generate_id() {
+    std::default_random_engine e(std::random_device{}());
+
+    std::uniform_int_distribution<int> dist(1, 255);
+    return static_cast<uint8_t>(dist(e));
+}
+
 int hide(std::vector<bmp::image> &images, std::string data_path) {
 
     auto data_size = std::filesystem::file_size(data_path);
@@ -72,8 +80,7 @@ int hide(std::vector<bmp::image> &images, std::string data_path) {
     data_ifstream.read(reinterpret_cast<char*>(data.data()), data_size);
     std::span span(data);
 
-    /* will become randomly generated later */
-    uint8_t id = 137u;
+    uint8_t id = generate_id();
 
     uint8_t seq = 0u;
     auto data_index = 0ul;
