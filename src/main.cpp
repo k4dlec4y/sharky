@@ -8,7 +8,9 @@
 #include "../include/extract.h"
 
 enum mode { NO_MODE, HIDE, EXTRACT };
-constexpr auto cells_per_byte = 8 / chunk_size;
+
+uint8_t chunk_size = 2;
+auto cells_per_byte = 8 / chunk_size;
 
 mode process_args(
     std::vector<std::string> &args,
@@ -19,8 +21,28 @@ mode process_args(
     mode m = mode::NO_MODE;
 
     for (auto i = 0u; i < args.size(); ++i) {
-
-        if (args[i] == "--hide"sv || args[i] == "-h"sv) {
+        if (args[i] == "--chunk_size"sv || args[i] == "-c"sv) {
+            if (i != 0) {
+                std::cerr << "-c|--chunk_size must be used as first argument\n";
+                return mode::NO_MODE;
+            }
+            if (++i == args.size()) {
+                std::cerr << "-c|--chunk_size was used as the last argument\n";
+                return mode::NO_MODE;
+            }
+            try {
+                chunk_size = static_cast<uint8_t>(std::stoi(args[i]));
+                if (8 % chunk_size != 0) {
+                    std::cerr << "supported chunk_size values are: 1, 2, 4, 8\n";
+                    return mode::NO_MODE;
+                }
+                cells_per_byte = 8 / chunk_size;
+            }
+            catch(const std::exception& _) {
+                std::cerr << "could not convert given chunk_size into an integer\n";
+                return mode::NO_MODE;
+            }
+        } else if (args[i] == "--hide"sv || args[i] == "-h"sv) {
             if (m == mode::EXTRACT) {
                 std::cerr << "cannot use hide and extract at the same time\n";
                 return mode::NO_MODE;
