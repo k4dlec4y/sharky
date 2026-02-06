@@ -66,7 +66,7 @@ void chunker::merge_chunks() {
 
 image_buffer::image_buffer(bmp::image &im, uint8_t chunk_size) : im(im),
     mask(get_mask(chunk_size)) {
-    //im.set_data_start();
+    im.set_data_start();
     erase_mask = ~mask;
 }
 
