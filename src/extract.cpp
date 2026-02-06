@@ -10,9 +10,12 @@
 #include "../include/bitmap.h"
 #include "../include/extract.h"
 
+static const uint8_t MCHS = 2;
+
 static bool extract_bytes(
     bmp::image_buffer& buffer,
     bmp::chunker& chunker,
+    uint8_t chunk_size,
     auto size
 ) {
     uint8_t chunk;
@@ -29,9 +32,9 @@ bool extract_hidden_metadata(
     bmp::image_buffer& buffer
 ) {
     std::vector<uint8_t> data(hidden_metadata_size);
-    bmp::chunker chunker{std::span(data.data(), data.size()), chunk_size, false};
+    bmp::chunker chunker{std::span(data.data(), data.size()), MCHS, false};
 
-    if (!extract_bytes(buffer, chunker, hidden_metadata_size)) {
+    if (!extract_bytes(buffer, chunker, MCHS, hidden_metadata_size)) {
         std::cerr << "image " << im.filename
                   << " run out of bytes too early!\n";
         return false;
@@ -50,6 +53,8 @@ bool extract_hidden_metadata(
     im.hidden_data_size = 0u;
     for (std::size_t i = 0; i < 4; ++i)
         im.hidden_data_size |= data[4 + i] << (i * 8);
+
+    im.chunk_size = data[8];
     return true;
 }
 
@@ -58,8 +63,8 @@ bool extract_data(
     bmp::image_buffer& buffer,
     std::span<uint8_t> data
 ) {
-    bmp::chunker chunker {data, chunk_size, false};
-    if (!extract_bytes(buffer, chunker, data.size())) {
+    bmp::chunker chunker {data, im.chunk_size, false};
+    if (!extract_bytes(buffer, chunker, im.chunk_size, data.size())) {
         std::cerr << "image " << im.filename
                   << " run out of bytes too early!\n";
         return false;
@@ -76,7 +81,7 @@ int extract(
     auto data_size = 0;
 
     for (auto i = 0u; i < images.size(); ++i) {
-        buffers.emplace_back(images[i], chunk_size);
+        buffers.emplace_back(images[i], MCHS);
         if (!extract_hidden_metadata(images[i], buffers[i]))
             return 1;
         data_size += images[i].hidden_data_size;
@@ -112,6 +117,7 @@ int extract(
     for (auto i = 0u; i < images.size(); ++i) {
         auto j = indx[i];
         auto n = images[j].hidden_data_size;
+        buffers[j].change_chunk_size(images[j].chunk_size);
         if (!extract_data(images[j], buffers[j],
                           std::span(data.data() + data_index, n)))
             return 1;

@@ -4,8 +4,6 @@
 #include <cstdint>
 
 /* in bytes */
-const std::size_t hidden_metadata_size = 8;
-
-extern uint8_t chunk_size;
+const std::size_t hidden_metadata_size = 9;
 
 #endif  // CONFIGURATION_H

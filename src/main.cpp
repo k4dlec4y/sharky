@@ -9,9 +9,6 @@
 
 enum mode { NO_MODE, HIDE, EXTRACT };
 
-uint8_t chunk_size = 2;
-auto cells_per_byte = 8 / chunk_size;
-
 mode process_args(
     std::vector<std::string> &args,
     std::vector<bmp::image> &images,
@@ -19,13 +16,10 @@ mode process_args(
 ) {
     using namespace std::literals;
     mode m = mode::NO_MODE;
+    uint8_t chunk_size = 2;
 
     for (auto i = 0u; i < args.size(); ++i) {
         if (args[i] == "--chunk_size"sv || args[i] == "-c"sv) {
-            if (i != 0) {
-                std::cerr << "-c|--chunk_size must be used as first argument\n";
-                return mode::NO_MODE;
-            }
             if (++i == args.size()) {
                 std::cerr << "-c|--chunk_size was used as the last argument\n";
                 return mode::NO_MODE;
@@ -36,7 +30,6 @@ mode process_args(
                     std::cerr << "supported chunk_size values are: 1, 2, 4, 8\n";
                     return mode::NO_MODE;
                 }
-                cells_per_byte = 8 / chunk_size;
             }
             catch(const std::exception& _) {
                 std::cerr << "could not convert given chunk_size into an integer\n";
@@ -61,18 +54,14 @@ mode process_args(
             }
             data_filename = args[i];
         } else {
-            images.emplace_back(bmp::image(args[i]));
+            images.emplace_back(args[i], chunk_size);
 
             if (!images.back().input.is_open()) {
                 std::cerr << "image " << args[i] << " could not be opened\n";
                 images.pop_back();
-            } else if (!bmp::load_header(images.back(), cells_per_byte)) {
+            } else if (!bmp::load_header(images.back())) {
                 /* error line is printed in load_header() */
                 images.pop_back();
-            } else {
-                std::cout << "image " << args[i]
-                          << " was opened with byte_capacity: "
-                          << images.back().byte_capacity - hidden_metadata_size << '\n';
             }
         }
     }

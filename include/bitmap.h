@@ -20,8 +20,11 @@ struct image {
     uint16_t channel_count;
 
     uint32_t data_offset;
-    /* how many bytes can be hidden in total */
-    std::size_t byte_capacity;
+    /* how many bytes can be used for hidding data */
+    /* this already excludes size for hidden metadata */
+    std::size_t capacity;
+    uint8_t chunk_size;
+    uint8_t cells_per_byte;
     /* this excludes the size of metadata! */
     std::size_t hidden_data_size{0};
     /* bitmap padding */
@@ -33,11 +36,13 @@ struct image {
 
     std::vector<uint8_t> header;
 
-    image(const char *filename) : filename(filename),
-        input(filename, std::ios::binary) {}
+    image(const char *filename, uint8_t chunk_size) : filename(filename),
+        input(filename, std::ios::binary), chunk_size(chunk_size),
+        cells_per_byte(8 / chunk_size) {}
 
-    image(std::string filename) : filename(filename),
-        input(filename, std::ios::binary) {}
+    image(std::string filename, uint8_t chunk_size) : filename(filename),
+        input(filename, std::ios::binary), chunk_size(chunk_size),
+        cells_per_byte(8 / chunk_size) {}
 
     /**
      * Opens an output stream for image '.../image.bmp' as
@@ -58,6 +63,8 @@ struct image {
      * to data offset.
      */
     void set_data_start();
+
+    std::size_t byte_capacity() const;
 };
 
 const int smaller_header_size = 14;
@@ -92,6 +99,7 @@ public:
     image_buffer(bmp::image &im, uint8_t chunk_size);
     bool hide_chunk(uint8_t chunk);
     bool extract_chunk(uint8_t& chunk);
+    void change_chunk_size(uint8_t chunk_size);
     void copy_rest();
 
 private:
@@ -117,8 +125,6 @@ private:
  * struct.
  * 
  * @param im reference to image struct, where information is stored
- * @param cells_per_byte amount of bytes needed to hide a single byte into
- * the image, used to count byte_capacity of the image
  * 
  * @return `true` on success, `false` otherwise
  * 
@@ -127,7 +133,7 @@ private:
  * of the file. After the call, ifstream `input` is pointing at beginning
  * of bmp's data section.
  */
-bool load_header(image &im, std::size_t cells_per_byte);
+bool load_header(image &im);
 
 }
 

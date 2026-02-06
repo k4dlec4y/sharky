@@ -113,6 +113,11 @@ bool image_buffer::extract_chunk(uint8_t& chunk) {
     return true;
 }
 
+void image_buffer::change_chunk_size(uint8_t chunk_size) {
+    mask = get_mask(chunk_size);
+    erase_mask = ~mask;
+}
+
 void image_buffer::copy_rest() {
     while (write_and_read()) {}
 }
@@ -156,6 +161,10 @@ void bmp::image::set_data_start() {
     this->input.seekg(this->data_offset, std::ios::beg);
 }
 
+std::size_t bmp::image::byte_capacity() const {
+    return capacity / cells_per_byte;
+}
+
 static uint16_t to_uint16(const uint8_t *data) {
     return static_cast<uint16_t>(data[0]) |
            (static_cast<uint16_t>(data[1]) << 8);
@@ -172,7 +181,7 @@ static int count_padding(int width, int channels) {
     return (4 - (width * channels) % 4) % 4;
 }
 
-bool load_header(image &im, std::size_t cells_per_byte) {
+bool load_header(image &im) {
 
     auto file_size = std::filesystem::file_size(im.filename);
     im.header.resize(smaller_header_size);
@@ -213,12 +222,14 @@ bool load_header(image &im, std::size_t cells_per_byte) {
         return false;
     }
     im.channel_count = bit_count / 8;
-    im.byte_capacity = static_cast<std::size_t>(im.width) *
-        im.channel_count * im.height / cells_per_byte;
-    if (im.byte_capacity <= hidden_metadata_size) {
+    im.capacity = im.width * im.channel_count * im.height;
+    /* 4 * because chunk_size for metadeta will be always 2 */
+    if (im.capacity <= 4 * hidden_metadata_size) {
         std::cerr << "file " << im.filename << " is too small to hide data\n";
         return false;
     }
+    im.capacity -= 4 * hidden_metadata_size;
+
     im.padding = count_padding(im.width, im.channel_count);
 
     uint32_t compression = to_uint32(im.header.data() + 30);

@@ -1,4 +1,2 @@
--add better (from cmd) customization of chunk_size
-
 -add parallel processing support
 -add posix mmap support

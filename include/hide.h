@@ -24,11 +24,11 @@ bool hide_data(
  * @brief Hides message (data) from file into images.
  * 
  * @param images vector of images, where text will be hidden
- * @param message_path file path of the message file
+ * @param data_path file path of the message file
  * 
  * @return 0 on success, 1 if the full message could not be hidden
  * due to small images sizes, 2 in case of stream errors
  */
-int hide(std::vector<bmp::image> &images, std::string message_path);
+int hide(std::vector<bmp::image> &images, std::string data_path);
 
 #endif  // HIDE_H

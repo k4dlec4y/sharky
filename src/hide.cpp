@@ -8,20 +8,18 @@
 #include "../include/bitmap.h"
 #include "../include/hide.h"
 
+static const uint8_t MCHS = 2;
+
 bool hide_data(
     bmp::image &im,
     std::span<uint8_t> to_hide,
     uint8_t id,
     uint8_t seq
 ) {
-    /* this should never happen, handled in bitmap files */
-    if (im.byte_capacity < hidden_metadata_size + to_hide.size())
-        return false;
-
     im.open_ofstream();
     im.output.write(reinterpret_cast<char *>(im.header.data()), im.header.size());
 
-    bmp::image_buffer buffer{im, chunk_size};
+    bmp::image_buffer buffer{im, MCHS};
 
     std::vector<uint8_t> metadata{};
     /* magic number for sharky images */
@@ -36,9 +34,10 @@ bool hide_data(
         metadata.emplace_back(static_cast<uint8_t>(data_size & 0xffu));
         data_size >>= 8;
     }
+    metadata.emplace_back(im.chunk_size);
 
     uint8_t chunk;
-    bmp::chunker metadata_chnkr{std::span(metadata.data(), metadata.size()), chunk_size};
+    bmp::chunker metadata_chnkr{std::span(metadata.data(), metadata.size()), MCHS};
     while (metadata_chnkr.get_chunk(chunk)) {
         if (!buffer.hide_chunk(chunk)) {
             std::cerr << "image file " << im.filename
@@ -47,8 +46,9 @@ bool hide_data(
             return false;
         }
     }
- 
-    bmp::chunker data_chnkr{to_hide, chunk_size};
+
+    buffer.change_chunk_size(im.chunk_size);
+    bmp::chunker data_chnkr{to_hide, im.chunk_size};
     while (data_chnkr.get_chunk(chunk)) {
         if (!buffer.hide_chunk(chunk)) {
             std::cerr << "image file " << im.filename
@@ -86,7 +86,10 @@ int hide(std::vector<bmp::image> &images, std::string data_path) {
     auto data_index = 0ul;
 
     for (; data_index < data_size && seq < images.size(); ++seq) {
-        auto capacity = images[seq].byte_capacity - hidden_metadata_size;
+        auto capacity = images[seq].byte_capacity();
+        std::cout << "image " << images[seq].filename
+                  << " was opened with "
+                  << capacity << " byte capacity\n";
         auto sspan_size = std::min(capacity, data_size - data_index);
         std::span data_part = span.subspan(data_index, sspan_size);
 
