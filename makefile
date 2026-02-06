@@ -1,5 +1,5 @@
 CXX = clang++
-CFLAGS = -std=c++20 -c -Wall -Wextra -Wold-style-cast -Werror -Iinclude
+CFLAGS = -std=c++20 -c -Wall -Wextra -Wold-style-cast -Werror -Iinclude # -g -O0
 
 SRC_DIR = src/
 BUILD_DIR = build/

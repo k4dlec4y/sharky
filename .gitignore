@@ -3,3 +3,4 @@ build/
 output_bitmaps/
 bitmaps/
 data/
+.vscode
