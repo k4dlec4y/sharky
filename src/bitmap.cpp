@@ -26,7 +26,7 @@ chunker::chunker(std::span<uint8_t> data, uint8_t chunk_size,
                        : 0;
 }
 
-bool chunker::get_chunk(uint8_t& chunk) {
+bool chunker::get_chunk(uint8_t &chunk) {
     if (chunks_index >= chunks.size()) {
         if (data_index >= data.size())
             return false;
@@ -92,7 +92,7 @@ bool image_buffer::hide_chunk(uint8_t chunk) {
     return true;
 }
 
-bool image_buffer::extract_chunk(uint8_t& chunk) {
+bool image_buffer::extract_chunk(uint8_t &chunk) {
     while (true) {
         if (index >= loaded) {
             if (!read())
@@ -153,7 +153,7 @@ bool bmp::image::open_ofstream() {
     return output.good();
 }
 
-auto bmp::image::operator<=>(const bmp::image& rhs) const {
+auto bmp::image::operator<=>(const bmp::image &rhs) const {
     return this->seq <=> rhs.seq;
 }
 

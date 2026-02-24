@@ -40,7 +40,7 @@ struct image {
         input(filename, std::ios::binary), chunk_size(chunk_size),
         cells_per_byte(8 / chunk_size) {}
 
-    image(std::string filename, uint8_t chunk_size) : filename(filename),
+    image(const std::string &filename, uint8_t chunk_size) : filename(filename),
         input(filename, std::ios::binary), chunk_size(chunk_size),
         cells_per_byte(8 / chunk_size) {}
 
@@ -56,7 +56,7 @@ struct image {
      * Sorts according to member variable seq,
      * useful when extracting data from images
      */
-    auto operator<=>(const bmp::image& rhs) const;
+    auto operator<=>(const bmp::image &rhs) const;
 
     /**
      * Moves reading position of the input stream
@@ -73,7 +73,7 @@ class chunker {
 public:
     chunker(std::span<uint8_t> data, uint8_t chunk_size,
         bool is_get = true);
-    bool get_chunk(uint8_t& chunk);
+    bool get_chunk(uint8_t &chunk);
     bool send_chunk(uint8_t chunk);
 
 private:
@@ -98,7 +98,7 @@ class image_buffer {
 public:
     image_buffer(bmp::image &im, uint8_t chunk_size);
     bool hide_chunk(uint8_t chunk);
-    bool extract_chunk(uint8_t& chunk);
+    bool extract_chunk(uint8_t &chunk);
     void change_chunk_size(uint8_t chunk_size);
     void copy_rest();
 
