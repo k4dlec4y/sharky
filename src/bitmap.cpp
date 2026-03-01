@@ -146,10 +146,9 @@ bool bmp::image::open_ofstream() {
         ++basename_index;
     auto basename = filename.substr(basename_index);
 
-    std::filesystem::create_directories("output_bitmaps");
+    std::filesystem::create_directories("bitmaps_out");
 
-    output.open("output_bitmaps/"s + basename + ".out"s,
-        std::ios::binary | std::ios::trunc);
+    output.open("bitmaps_out/"s + basename, std::ios::binary | std::ios::trunc);
     return output.good();
 }
 
