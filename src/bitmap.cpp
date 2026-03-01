@@ -9,22 +9,53 @@
 
 namespace bmp {
 
+image::image(const char *filename, uint8_t chunk_size)
+    : filename(filename), input(filename, std::ios::binary),
+      chunk_size(chunk_size), cells_per_byte(8 / chunk_size) {}
+
+image::image(const std::string &filename, uint8_t chunk_size)
+    : filename(filename), input(filename, std::ios::binary),
+      chunk_size(chunk_size), cells_per_byte(8 / chunk_size) {}
+
+bool image::open_ofstream() {
+    using namespace std::string_literals;
+
+    auto basename_index = filename.rfind('/');
+    if (basename_index == std::string::npos)
+        basename_index = 0;
+    else
+        ++basename_index;
+    auto basename = filename.substr(basename_index);
+
+    std::filesystem::create_directories("bitmaps_out");
+
+    output.open("bitmaps_out/"s + basename, std::ios::binary | std::ios::trunc);
+    return output.good();
+}
+
+auto image::operator<=>(const image &rhs) const {
+    return this->seq <=> rhs.seq;
+}
+
+void image::set_data_start() {
+    this->input.seekg(this->data_offset, std::ios::beg);
+}
+
+std::size_t image::byte_capacity() const {
+    return capacity / cells_per_byte;
+}
+
 static uint8_t get_mask(uint8_t chunk_size) {
     return chunk_size < 8
            ? static_cast<uint8_t>((1u << chunk_size) - 1)
            : 0xffu;
 }
 
-chunker::chunker(std::span<uint8_t> data, uint8_t chunk_size,
-    bool is_get) :
-    data(data),
-    chunk_size(chunk_size),
-    chunks((8 + chunk_size - 1) / chunk_size),
-    mask(get_mask(chunk_size)) {
-        chunks_index = is_get
-                       ? (8 + chunk_size - 1) / chunk_size
-                       : 0;
-}
+chunker::chunker(std::span<uint8_t> data, uint8_t chunk_size, bool is_get)
+    : data(data), chunk_size(chunk_size),
+      chunks((8 + chunk_size - 1) / chunk_size),
+      chunks_index(is_get ? chunks.size() : 0),
+      mask(get_mask(chunk_size)) {}
 
 bool chunker::get_chunk(uint8_t &chunk) {
     if (chunks_index >= chunks.size()) {
@@ -134,34 +165,6 @@ bool image_buffer::write_and_read() {
     if (loaded > 0)
         im.output.write(buffer.data(), loaded);
     return read();
-}
-
-bool bmp::image::open_ofstream() {
-    using namespace std::string_literals;
-
-    auto basename_index = filename.rfind('/');
-    if (basename_index == std::string::npos)
-        basename_index = 0;
-    else
-        ++basename_index;
-    auto basename = filename.substr(basename_index);
-
-    std::filesystem::create_directories("bitmaps_out");
-
-    output.open("bitmaps_out/"s + basename, std::ios::binary | std::ios::trunc);
-    return output.good();
-}
-
-auto bmp::image::operator<=>(const bmp::image &rhs) const {
-    return this->seq <=> rhs.seq;
-}
-
-void bmp::image::set_data_start() {
-    this->input.seekg(this->data_offset, std::ios::beg);
-}
-
-std::size_t bmp::image::byte_capacity() const {
-    return capacity / cells_per_byte;
 }
 
 static uint16_t to_uint16(const uint8_t *data) {

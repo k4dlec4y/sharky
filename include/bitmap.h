@@ -36,20 +36,15 @@ struct image {
 
     std::vector<uint8_t> header;
 
-    image(const char *filename, uint8_t chunk_size) : filename(filename),
-        input(filename, std::ios::binary), chunk_size(chunk_size),
-        cells_per_byte(8 / chunk_size) {}
-
-    image(const std::string &filename, uint8_t chunk_size) : filename(filename),
-        input(filename, std::ios::binary), chunk_size(chunk_size),
-        cells_per_byte(8 / chunk_size) {}
+    image(const char *filename, uint8_t chunk_size);
+    image(const std::string &filename, uint8_t chunk_size);
 
     /**
      * Opens an output stream for image '.../image.bmp' as
      * './output_bitmaps/image.bmp.out'
      * 
      * @return `true` on success, `false` otherwise
-    */
+     */
     bool open_ofstream();
 
     /**
@@ -92,7 +87,7 @@ private:
     uint8_t mask;
 };
 
-constexpr int buffer_size = 256;
+constexpr int buffer_size = 4096;
 
 class image_buffer {
 public:
