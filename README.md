@@ -70,15 +70,18 @@ sentinel values, and the chunk size field specifies how many bits per pixel
 channel were used during embedding.
 
 ## Requirements
-- C++20 compatible compiler (GCC or Clang, type it into the makefile)
-- make
+- Compiler: C++20 compatible
+- Build System: CMake
+- Test Framework: GoogleTest
 - Tested on Linux (Debian 13)
 
 ## Installation
 ```bash
 git clone https://github.com/k4dlec4y/sharky
 cd sharky
-make
+mkdir -p build/
+cmake -B build/ -S .
+cmake --build build/ --parallel $(nproc)
 ```
 
 ## Usage
@@ -126,9 +129,9 @@ files. Only valid, uncompressed BMP images are accepted.
 ### Output
 When hiding data, the modified images are written to:
 ```bash
-sharky/output_bitmaps/
+bitmaps_out/
 ```
-Each output image uses the original filename with the suffix .out appended.
+Each output image uses the original filename.
 
 ### Error handling
 In case of invalid arguments, unsupported files, or runtime errors, `sharky`
@@ -139,17 +142,17 @@ or extraction.
 ### Examples
 Hiding data
 ```bash
-sharky -c 4 bitmaps/image.bmp -c 8 bitmaps/image2.bmp -h -f data/data_in
+build/sharky -c 4 bitmaps_in/image.bmp -c 8 bitmaps_in/image2.bmp -h -f data/data_in
 ```
 This command:
 - Hides data/data_in into two images
 - Uses 4-bit LSB encoding for image.bmp
 - Uses 8-bit replacement for image2.bmp
-- Writes modified images to sharky/output_bitmaps/
+- Writes modified images to bitmaps_out/
 
 Extracting data
 ```bash
-sharky -c 4 output_bitmaps/image2.bmp.out output_bitmaps/image.bmp.out -e -f data/data_out
+build/sharky -c 4 bitmaps_out/image2.bmp bitmaps_out/image.bmp -e -f data/data_out
 ```
 This command:
 - Extracts hidden data from the provided images
