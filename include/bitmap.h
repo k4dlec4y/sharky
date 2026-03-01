@@ -96,6 +96,11 @@ constexpr int buffer_size = 256;
 
 class image_buffer {
 public:
+    /**
+     * @param im reference to image struct, where information is stored
+     * @param chunk_size how many bits of byte will store hidden data, used
+     * to calculate masks and buffer size
+     */
     image_buffer(bmp::image &im, uint8_t chunk_size);
     bool hide_chunk(uint8_t chunk);
     bool extract_chunk(uint8_t &chunk);

@@ -8,6 +8,7 @@
 #include "../include/bitmap.h"
 #include "../include/hide.h"
 
+/* metadata chunk_size */
 static const uint8_t MCHS = 2;
 
 bool hide_data(
