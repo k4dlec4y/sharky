@@ -6,25 +6,12 @@ project(sharky)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(-Wall -Wextra -pedantic -Wold-style-cast -Werror -Iinclude)
+add_compile_options(-Wall -Wextra -pedantic -Wold-style-cast -Werror)
 
-add_library(libbmpsharky SHARED
-    src/bitmap.cpp
-    src/extract.cpp
-    src/hide.cpp
-)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-target_include_directories(libbmpsharky
-    PUBLIC include
-)
-
-add_executable(sharky
-    src/main.cpp
-)
-
-target_link_libraries(sharky
-    PRIVATE libbmpsharky
-)
+add_subdirectory(src)
 
 include(FetchContent)
 FetchContent_Declare(googletest
@@ -35,15 +22,4 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 enable_testing()
-
-add_executable(run_tests
-    src/tests.cpp
-)
-
-target_link_libraries(run_tests
-    PRIVATE libbmpsharky
-    GTest::gtest_main
-)
-
-include(GoogleTest)
-gtest_discover_tests(run_tests)
+add_subdirectory(tests)
