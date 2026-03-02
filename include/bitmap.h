@@ -5,6 +5,7 @@
 #include <vector>
 #include <span>
 #include <fstream>
+#include <functional>
 
 #include "../include/configuration.h"
 
@@ -105,6 +106,16 @@ public:
 private:
     bool read();
     bool write_and_read();
+
+    /**
+     * Moves index to the next position where data can be hidden/extracted, while
+     * skipping padding bytes. If the end of buffer is reached, it will call
+     * the provided function to write the buffer and read the next chunk of data
+     * into the buffer. The provided function should return `true` if the next
+     * chunk of data was successfully read into the buffer, and `false` if
+     * there is no more data to read.
+     */
+    bool move_index(std::function<bool(void)> read_or_writeread);
 
     std::array<char, buffer_size> buffer;
     std::size_t index{0};

@@ -102,20 +102,8 @@ image_buffer::image_buffer(bmp::image &im, uint8_t chunk_size) : im(im),
 }
 
 bool image_buffer::hide_chunk(uint8_t chunk) {
-    while (true) {
-        if (index >= loaded) {
-            if (!write_and_read())
-                return false;
-        }
-        if (x >= im.width * im.channel_count) {
-            skip = im.padding;
-            x = 0;
-        }
-        if (skip == 0)
-            break;
-        ++index;
-        --skip;
-    }
+    if (!move_index([this]() { return write_and_read(); }))
+        return false;
 
     buffer[index] &= erase_mask;
     buffer[index++] |= chunk;
@@ -124,20 +112,8 @@ bool image_buffer::hide_chunk(uint8_t chunk) {
 }
 
 bool image_buffer::extract_chunk(uint8_t &chunk) {
-    while (true) {
-        if (index >= loaded) {
-            if (!read())
-                return false;
-        }
-        if (x >= im.width * im.channel_count) {
-            skip = im.padding;
-            x = 0;
-        }
-        if (skip == 0)
-            break;
-        ++index;
-        --skip;
-    }
+    if (!move_index([this]() { return read(); }))
+        return false;
 
     chunk = buffer[index++] & mask;
     ++x;
@@ -165,6 +141,24 @@ bool image_buffer::write_and_read() {
     if (loaded > 0)
         im.output.write(buffer.data(), loaded);
     return read();
+}
+
+bool image_buffer::move_index(std::function<bool(void)> read_or_writeread) {
+    while (true) {
+        if (index >= loaded) {
+            if (!read_or_writeread())
+                return false;
+        }
+        if (x >= im.width * im.channel_count) {
+            skip = im.padding;
+            x = 0;
+        }
+        if (skip == 0)
+            break;
+        ++index;
+        --skip;
+    }
+    return true;
 }
 
 static uint16_t to_uint16(const uint8_t *data) {
