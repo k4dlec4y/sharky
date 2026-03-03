@@ -49,7 +49,8 @@ bool image::write_header_to_output() {
 }
 
 bool image::assign_output() {
-    auto ofstream = std::make_unique<std::ofstream>(get_output_path(), std::ios::binary);
+    auto ofstream = std::make_unique<std::ofstream>(
+        get_output_path(), std::ios::binary);
     if (ofstream == nullptr || !ofstream->is_open() || !ofstream->good()) {
         return false;
     }
@@ -206,28 +207,28 @@ static int count_padding(int width, int channels) {
     return (4 - (width * channels) % 4) % 4;
 }
 
-bool load_header(image &im, std::ostream &error_stream) {
+bool load_header(image &im, std::ostream &err) {
     const int smaller_header_size = 14;
 
     auto file_size = std::filesystem::file_size(im.filename);
     im.header.resize(smaller_header_size);
 
     if (file_size < smaller_header_size) {
-        error_stream << "file " << im.filename << " is too small to be bmp\n";
+        err << "file " << im.filename << " is too small to be bmp\n";
         return false;
     }
     if (!im.input->read(reinterpret_cast<char *>(im.header.data()),
                        smaller_header_size)) {
-        error_stream << "file " << im.filename << " could not be read\n";
+        err << "file " << im.filename << " could not be read\n";
         return false;
     }
     if (im.header[0] != 'B' || im.header[1] != 'M') {
-        error_stream << "file " << im.filename << " has invalid magic number to be"
+        err << "file " << im.filename << " has invalid magic number to be"
                   << " bmp file: " << im.header[0] << im.header[1] << '\n';
         return false;
     }
     if (to_uint32(im.header.data() + 2) != file_size) {
-        error_stream << "file " << im.filename << " - the actual size and size "
+        err << "file " << im.filename << " - the actual size and size "
                   << "in bmp header does not match\n";
         return false;
     }
@@ -235,7 +236,7 @@ bool load_header(image &im, std::ostream &error_stream) {
     im.header.resize(im.data_offset);
     if (!im.input->read(reinterpret_cast<char *>(im.header.data()) + smaller_header_size,
                        im.data_offset - smaller_header_size)) {
-        error_stream << "file " << im.filename << " could not be read\n";
+        err << "file " << im.filename << " could not be read\n";
         return false;
     }
     im.width = to_uint32(im.header.data() + 18);
@@ -243,7 +244,7 @@ bool load_header(image &im, std::ostream &error_stream) {
 
     uint16_t bit_count = to_uint16(im.header.data() + 28);
     if (bit_count != 24 && bit_count != 32) {
-        error_stream << "file " << im.filename << " has invalid bit count "
+        err << "file " << im.filename << " has invalid bit count "
                   << "for single pixel, use 24/32\n";
         return false;
     }
@@ -251,7 +252,7 @@ bool load_header(image &im, std::ostream &error_stream) {
     im.capacity = im.width * im.channel_count * im.height;
     /* 4 * because chunk_size for metadeta will be always 2 */
     if (im.capacity <= 4 * HIDDEN_METADATA_SIZE) {
-        error_stream << "file " << im.filename << " is too small to hide data\n";
+        err << "file " << im.filename << " is too small to hide data\n";
         return false;
     }
     im.capacity -= 4 * HIDDEN_METADATA_SIZE;
@@ -260,7 +261,7 @@ bool load_header(image &im, std::ostream &error_stream) {
 
     uint32_t compression = to_uint32(im.header.data() + 30);
     if (compression) {
-        error_stream << "file " << im.filename << " is compressed\n";
+        err << "file " << im.filename << " is compressed\n";
         return false;
     }
     return true;
