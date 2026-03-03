@@ -160,7 +160,7 @@ void image_buffer::copy_rest() {
 
 bool image_buffer::read() {
     buffer.fill(static_cast<char>(0));
-    im.input->read(buffer.data(), buffer_size);
+    im.input->read(buffer.data(), BUFFER_SIZE);
     loaded = im.input->gcount();
     index = 0;
     return loaded > 0;
@@ -207,6 +207,7 @@ static int count_padding(int width, int channels) {
 }
 
 bool load_header(image &im, std::ostream &error_stream) {
+    const int smaller_header_size = 14;
 
     auto file_size = std::filesystem::file_size(im.filename);
     im.header.resize(smaller_header_size);

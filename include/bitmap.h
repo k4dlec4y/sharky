@@ -112,8 +112,6 @@ struct image {
     std::size_t byte_capacity() const;
 };
 
-const int smaller_header_size = 14;
-
 class chunker {
 public:
     chunker(std::span<uint8_t> data, uint8_t chunk_size,
@@ -137,7 +135,7 @@ private:
     uint8_t mask;
 };
 
-constexpr int buffer_size = 4096;
+const std::size_t BUFFER_SIZE = 4096;
 
 class image_buffer {
 public:
@@ -166,7 +164,7 @@ private:
      */
     bool move_index(std::function<bool(void)> read_or_writeread);
 
-    std::array<char, buffer_size> buffer;
+    std::array<char, BUFFER_SIZE> buffer;
     std::size_t index{0};
     std::size_t loaded{0};
     bmp::image &im;
