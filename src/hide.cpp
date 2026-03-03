@@ -5,11 +5,9 @@
 #include <random>
 #include <filesystem>
 
+#include "../include/configuration.h"
 #include "../include/bitmap.h"
 #include "../include/hide.h"
-
-/* metadata chunk_size */
-static const uint8_t MCHS = 2;
 
 bool hide_data(
     bmp::image &im,
@@ -17,7 +15,7 @@ bool hide_data(
     uint8_t id,
     uint8_t seq
 ) {
-    bmp::image_buffer buffer{im, MCHS};
+    bmp::image_buffer buffer{im, MD_CHUNK_SIZE};
 
     std::vector<uint8_t> metadata{};
     /* magic number for sharky images */
@@ -35,7 +33,9 @@ bool hide_data(
     metadata.emplace_back(im.chunk_size);
 
     uint8_t chunk;
-    bmp::chunker metadata_chnkr{std::span(metadata.data(), metadata.size()), MCHS};
+    bmp::chunker metadata_chnkr{
+        std::span(metadata.data(), metadata.size()), MD_CHUNK_SIZE};
+
     while (metadata_chnkr.get_chunk(chunk)) {
         if (!buffer.hide_chunk(chunk)) {
             std::cerr << "image file " << im.filename

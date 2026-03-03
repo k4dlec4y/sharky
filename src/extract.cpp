@@ -7,10 +7,9 @@
 #include <numeric>
 #include <iostream>
 
+#include "../include/configuration.h"
 #include "../include/bitmap.h"
 #include "../include/extract.h"
-
-static const uint8_t MCHS = 2;
 
 static bool extract_bytes(
     bmp::image_buffer& buffer,
@@ -31,10 +30,10 @@ bool extract_hidden_metadata(
     bmp::image& im,
     bmp::image_buffer& buffer
 ) {
-    std::vector<uint8_t> data(hidden_metadata_size);
-    bmp::chunker chunker{std::span(data.data(), data.size()), MCHS, false};
+    std::vector<uint8_t> data(HIDDEN_METADATA_SIZE);
+    bmp::chunker chunker{std::span(data.data(), data.size()), MD_CHUNK_SIZE, false};
 
-    if (!extract_bytes(buffer, chunker, MCHS, hidden_metadata_size)) {
+    if (!extract_bytes(buffer, chunker, MD_CHUNK_SIZE, HIDDEN_METADATA_SIZE)) {
         std::cerr << "image " << im.filename
                   << " run out of bytes too early!\n";
         return false;
@@ -81,7 +80,7 @@ int extract(
     auto data_size = 0;
 
     for (auto i = 0u; i < images.size(); ++i) {
-        buffers.emplace_back(images[i], MCHS);
+        buffers.emplace_back(images[i], MD_CHUNK_SIZE);
         if (!extract_hidden_metadata(images[i], buffers[i]))
             return 1;
         data_size += images[i].hidden_data_size;

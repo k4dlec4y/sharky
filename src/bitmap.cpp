@@ -250,11 +250,11 @@ bool load_header(image &im, std::ostream &error_stream) {
     im.channel_count = bit_count / 8;
     im.capacity = im.width * im.channel_count * im.height;
     /* 4 * because chunk_size for metadeta will be always 2 */
-    if (im.capacity <= 4 * hidden_metadata_size) {
+    if (im.capacity <= 4 * HIDDEN_METADATA_SIZE) {
         error_stream << "file " << im.filename << " is too small to hide data\n";
         return false;
     }
-    im.capacity -= 4 * hidden_metadata_size;
+    im.capacity -= 4 * HIDDEN_METADATA_SIZE;
 
     im.padding = count_padding(im.width, im.channel_count);
 
