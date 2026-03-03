@@ -9,15 +9,26 @@
 
 namespace bmp {
 
-image::image(const char *filename, uint8_t chunk_size)
-    : filename(filename), input(filename, std::ios::binary),
-      chunk_size(chunk_size), cells_per_byte(8 / chunk_size) {}
-
 image::image(const std::string &filename, uint8_t chunk_size)
-    : filename(filename), input(filename, std::ios::binary),
-      chunk_size(chunk_size), cells_per_byte(8 / chunk_size) {}
+    : filename(filename)
+    , chunk_size(chunk_size)
+    , cells_per_byte(8 / chunk_size) {}
 
-bool image::open_ofstream() {
+bool image::assign_input() {
+    auto ifstream = std::make_unique<std::ifstream>(filename, std::ios::binary);
+    if (ifstream == nullptr || !ifstream->is_open() || !ifstream->good()) {
+        return false;
+    }
+    this->input = std::move(ifstream);
+    return true;
+}
+
+bool image::assign_input(std::unique_ptr<std::istream> input) {
+    this->input = std::move(input);
+    return this->input != nullptr;
+}
+
+std::string image::get_output_path() {
     using namespace std::string_literals;
 
     auto basename_index = filename.rfind('/');
@@ -27,10 +38,28 @@ bool image::open_ofstream() {
         ++basename_index;
     auto basename = filename.substr(basename_index);
 
-    std::filesystem::create_directories("bitmaps_out");
+    return "bitmaps_out/"s + basename;
+}
 
-    output.open("bitmaps_out/"s + basename, std::ios::binary | std::ios::trunc);
-    return output.good();
+bool image::write_header_to_output() {
+    if (!output || !output->good())
+        return false;
+    output->write(reinterpret_cast<char *>(header.data()), header.size());
+    return output->good();
+}
+
+bool image::assign_output() {
+    auto ofstream = std::make_unique<std::ofstream>(get_output_path(), std::ios::binary);
+    if (ofstream == nullptr || !ofstream->is_open() || !ofstream->good()) {
+        return false;
+    }
+    this->output = std::move(ofstream);
+    return true;
+}
+
+bool image::assign_output(std::unique_ptr<std::ostream> output) {
+    this->output = std::move(output);
+    return this->output != nullptr;
 }
 
 auto image::operator<=>(const image &rhs) const {
@@ -38,7 +67,7 @@ auto image::operator<=>(const image &rhs) const {
 }
 
 void image::set_data_start() {
-    this->input.seekg(this->data_offset, std::ios::beg);
+    this->input->seekg(this->data_offset, std::ios::beg);
 }
 
 std::size_t image::byte_capacity() const {
@@ -95,8 +124,8 @@ void chunker::merge_chunks() {
     data[data_index++] = merged;
 }
 
-image_buffer::image_buffer(bmp::image &im, uint8_t chunk_size) : im(im),
-    mask(get_mask(chunk_size)) {
+image_buffer::image_buffer(bmp::image &im, uint8_t chunk_size)
+    : im(im), mask(get_mask(chunk_size)) {
     im.set_data_start();
     erase_mask = ~mask;
 }
@@ -131,15 +160,15 @@ void image_buffer::copy_rest() {
 
 bool image_buffer::read() {
     buffer.fill(static_cast<char>(0));
-    im.input.read(buffer.data(), buffer_size);
-    loaded = im.input.gcount();
+    im.input->read(buffer.data(), buffer_size);
+    loaded = im.input->gcount();
     index = 0;
     return loaded > 0;
 }
 
 bool image_buffer::write_and_read() {
     if (loaded > 0)
-        im.output.write(buffer.data(), loaded);
+        im.output->write(buffer.data(), loaded);
     return read();
 }
 
@@ -177,35 +206,35 @@ static int count_padding(int width, int channels) {
     return (4 - (width * channels) % 4) % 4;
 }
 
-bool load_header(image &im) {
+bool load_header(image &im, std::ostream &error_stream) {
 
     auto file_size = std::filesystem::file_size(im.filename);
     im.header.resize(smaller_header_size);
 
     if (file_size < smaller_header_size) {
-        std::cerr << "file " << im.filename << " is too small to be bmp\n";
+        error_stream << "file " << im.filename << " is too small to be bmp\n";
         return false;
     }
-    if (!im.input.read(reinterpret_cast<char *>(im.header.data()),
+    if (!im.input->read(reinterpret_cast<char *>(im.header.data()),
                        smaller_header_size)) {
-        std::cerr << "file " << im.filename << " could not be read\n";
+        error_stream << "file " << im.filename << " could not be read\n";
         return false;
     }
     if (im.header[0] != 'B' || im.header[1] != 'M') {
-        std::cerr << "file " << im.filename << " has invalid magic number to be"
+        error_stream << "file " << im.filename << " has invalid magic number to be"
                   << " bmp file: " << im.header[0] << im.header[1] << '\n';
         return false;
     }
     if (to_uint32(im.header.data() + 2) != file_size) {
-        std::cerr << "file " << im.filename << " - the actual size and size "
+        error_stream << "file " << im.filename << " - the actual size and size "
                   << "in bmp header does not match\n";
         return false;
     }
     im.data_offset = to_uint32(im.header.data() + 10);
     im.header.resize(im.data_offset);
-    if (!im.input.read(reinterpret_cast<char *>(im.header.data()) + smaller_header_size,
+    if (!im.input->read(reinterpret_cast<char *>(im.header.data()) + smaller_header_size,
                        im.data_offset - smaller_header_size)) {
-        std::cerr << "file " << im.filename << " could not be read\n";
+        error_stream << "file " << im.filename << " could not be read\n";
         return false;
     }
     im.width = to_uint32(im.header.data() + 18);
@@ -213,7 +242,7 @@ bool load_header(image &im) {
 
     uint16_t bit_count = to_uint16(im.header.data() + 28);
     if (bit_count != 24 && bit_count != 32) {
-        std::cerr << "file " << im.filename << " has invalid bit count "
+        error_stream << "file " << im.filename << " has invalid bit count "
                   << "for single pixel, use 24/32\n";
         return false;
     }
@@ -221,7 +250,7 @@ bool load_header(image &im) {
     im.capacity = im.width * im.channel_count * im.height;
     /* 4 * because chunk_size for metadeta will be always 2 */
     if (im.capacity <= 4 * hidden_metadata_size) {
-        std::cerr << "file " << im.filename << " is too small to hide data\n";
+        error_stream << "file " << im.filename << " is too small to hide data\n";
         return false;
     }
     im.capacity -= 4 * hidden_metadata_size;
@@ -230,7 +259,7 @@ bool load_header(image &im) {
 
     uint32_t compression = to_uint32(im.header.data() + 30);
     if (compression) {
-        std::cerr << "file " << im.filename << " is compressed\n";
+        error_stream << "file " << im.filename << " is compressed\n";
         return false;
     }
     return true;

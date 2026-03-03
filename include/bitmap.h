@@ -6,6 +6,7 @@
 #include <span>
 #include <fstream>
 #include <functional>
+#include <memory>
 
 #include "../include/configuration.h"
 
@@ -13,44 +14,86 @@ namespace bmp {
 
 struct image {
     std::string filename;
-    std::ifstream input;
-    std::ofstream output;
-    uint32_t width;
-    uint32_t height;
+    std::unique_ptr<std::istream> input{nullptr};
+    std::unique_ptr<std::ostream> output{nullptr};
+    uint32_t width{0};
+    uint32_t height{0};
     /* 3 for BGR, 4 for BGRA*/
-    uint16_t channel_count;
+    uint16_t channel_count{0};
 
-    uint32_t data_offset;
-    /* how many bytes can be used for hidding data */
+    uint32_t data_offset{0};
+    /* how many bytes of the image can be used for hidding data */
     /* this already excludes size for hidden metadata */
-    std::size_t capacity;
+    std::size_t capacity{0};
     uint8_t chunk_size;
     uint8_t cells_per_byte;
     /* this excludes the size of metadata! */
     std::size_t hidden_data_size{0};
     /* bitmap padding */
-    int padding;
+    int padding{0};
 
     /* used for extraction */
-    uint8_t id;
-    uint8_t seq;
+    uint8_t id{0};
+    uint8_t seq{0};
 
-    std::vector<uint8_t> header;
+    std::vector<uint8_t> header{};
 
-    image(const char *filename, uint8_t chunk_size);
+    /**
+     * This constructor does not open the input nor output file, it only
+     * initializes the filename and chunk_size members. The input/output files
+     * should be opened by calling `assign_input`/`assign_output` methods.
+     */
     image(const std::string &filename, uint8_t chunk_size);
 
     /**
-     * Opens an output stream for image '.../image.bmp' as
-     * './output_bitmaps/image.bmp.out'
+     * Opens the input stream for the image using the filename member variable.
      * 
      * @return `true` on success, `false` otherwise
      */
-    bool open_ofstream();
+    bool assign_input();
 
     /**
-     * Sorts according to member variable seq,
-     * useful when extracting data from images
+     * Assigns the input stream for the image. The input stream should be already
+     * opened and ready to read.
+     * 
+     * @return `true` on success, `false` otherwise
+     */
+    bool assign_input(std::unique_ptr<std::istream> input);
+
+    /**
+     * Trims the filename and returns path to output file,
+     * which is "sharky/bitmaps_out/" + trimmed filename
+     * 
+     * @return path to output file
+     */
+    std::string get_output_path();
+
+    /**
+     * Writes the header of the bmp file to the output file.
+     * This should be called after opening the output file and before hiding
+     * any data, so that the output file is a valid bmp file.
+     * 
+     * @return `true` on success, `false` otherwise
+     */
+    bool write_header_to_output();
+
+    /* Opens the output stream for the image using the get_output_path method.
+     * 
+     * @return `true` on success, `false` otherwise
+     */
+    bool assign_output();
+
+    /**
+     * Assigns the output stream for the image. The output stream should be already
+     * opened and ready to write.
+     * 
+     * @return `true` on success, `false` otherwise
+     */
+    bool assign_output(std::unique_ptr<std::ostream> output);
+
+    /**
+     * Image comparison operator, compares images by their sequence number.
+     * This is useful when extracting data from images.
      */
     auto operator<=>(const bmp::image &rhs) const;
 
@@ -60,6 +103,12 @@ struct image {
      */
     void set_data_start();
 
+    /**
+     * Returns how many bytes can be hidden into the image in total,
+     * excluding the size of metadata. This is calculated as capacity / cells_per_byte.
+     * 
+     * @return byte capacity of the image for hidden data, excluding metadata
+     */
     std::size_t byte_capacity() const;
 };
 
@@ -136,6 +185,7 @@ private:
  * struct.
  * 
  * @param im reference to image struct, where information is stored
+ * @param error_stream stream where error messages will be written, default is std::cerr
  * 
  * @return `true` on success, `false` otherwise
  * 
@@ -144,7 +194,7 @@ private:
  * of the file. After the call, ifstream `input` is pointing at beginning
  * of bmp's data section.
  */
-bool load_header(image &im);
+bool load_header(image &im, std::ostream &error_stream = std::cerr);
 
 }
 

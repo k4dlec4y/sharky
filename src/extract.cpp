@@ -74,7 +74,7 @@ bool extract_data(
 
 int extract(
     std::vector<bmp::image>& images,
-    std::string data_filename
+    std::ostream& data_ostream
 ) {
     assert(images.size() > 0);
     std::vector<bmp::image_buffer> buffers{};
@@ -123,10 +123,7 @@ int extract(
             return 1;
         data_index += n;
     }
-    std::ofstream data_out{data_filename, std::ios::binary};
-    if (data_out.fail())
-        return 1;
 
-    return data_out.write(reinterpret_cast<char *>(data.data()),
-                          data.size()).fail();
+    return data_ostream.write(reinterpret_cast<char *>(data.data()),
+                              data.size()).fail();
 }

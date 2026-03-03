@@ -54,20 +54,17 @@ mode process_args(
             }
             data_filename = args[i];
         } else {
-            images.emplace_back(args[i], chunk_size);
-
-            if (!images.back().input.is_open()) {
+            auto im = bmp::image(args[i], chunk_size);
+            if (!im.assign_input()) {
                 std::cerr << "image " << args[i] << " could not be opened\n";
-                images.pop_back();
-            } else if (!bmp::load_header(images.back())) {
-                /* error line is printed in load_header() */
-                images.pop_back();
+            } else if (bmp::load_header(im)) {
+                images.push_back(std::move(im));
             }
         }
     }
     if (m == mode::NO_MODE) {
         std::cerr << "no mode was selected\n";   
-        return mode::NO_MODE;     
+        return mode::NO_MODE;
     } else if (data_filename == "") {
         std::cerr << "could not find message select it with -f/--file\n";
         return mode::NO_MODE;
@@ -78,19 +75,46 @@ mode process_args(
     return m;
 }
 
+static int open_output_files(std::vector<bmp::image> &images) {
+    for (auto &im : images) {
+        if (!im.assign_output()) {
+            std::cerr << "could not open output file for image "
+                      << im.filename << "\n";
+            return 1;
+        }
+        if (!im.write_header_to_output()) {
+            std::cerr << "could not write bmp header to output file for image "
+                      << im.filename << "\n";
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     std::vector<std::string> args(argv + 1, argv + argc);
     std::vector<bmp::image> images;
 
     std::string data_filename("");
-    
+
     switch (process_args(args, images, data_filename))
     {
-    case mode::HIDE:
-        return hide(images, data_filename);
-    case mode::EXTRACT:
-        return extract(images, data_filename);
+    case mode::HIDE: {
+        std::ifstream data_in{data_filename, std::ios::binary};
+        if (!data_in.is_open() || !data_in.good())
+            return 1;
+        if (open_output_files(images))
+            return 1;
+        return hide(images, data_in);
+    }
+
+    case mode::EXTRACT: {
+        std::ofstream data_out{data_filename, std::ios::binary};
+        if (!data_out.is_open() || !data_out.good())
+            return 1;
+        return extract(images, data_out);
+    }
     default:
         return 1;
     }

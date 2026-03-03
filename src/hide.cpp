@@ -17,9 +17,6 @@ bool hide_data(
     uint8_t id,
     uint8_t seq
 ) {
-    im.open_ofstream();
-    im.output.write(reinterpret_cast<char *>(im.header.data()), im.header.size());
-
     bmp::image_buffer buffer{im, MCHS};
 
     std::vector<uint8_t> metadata{};
@@ -60,8 +57,6 @@ bool hide_data(
     }
 
     buffer.copy_rest();
-
-    im.output.close();
     return true;
 }
 
@@ -72,13 +67,13 @@ static uint8_t generate_id() {
     return static_cast<uint8_t>(dist(e));
 }
 
-int hide(std::vector<bmp::image> &images, std::string data_path) {
+int hide(std::vector<bmp::image> &images, std::istream &data_in) {
 
-    auto data_size = std::filesystem::file_size(data_path);
-    std::ifstream data_ifstream{data_path, std::ios::binary};
+    std::size_t data_size = data_in.seekg(0, std::ios::end).tellg();
+    data_in.seekg(0, std::ios::beg);
 
     std::vector<uint8_t> data(data_size);
-    data_ifstream.read(reinterpret_cast<char*>(data.data()), data_size);
+    data_in.read(reinterpret_cast<char*>(data.data()), data_size);
     std::span span(data);
 
     uint8_t id = generate_id();

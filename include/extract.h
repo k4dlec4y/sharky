@@ -40,14 +40,13 @@ bool extract_data(
  * Extracts hidden data/message from images.
  * 
  * @param images reference to vector of images to be extracted
- * @param data_filename filename of file where data should be
- * extracted
+ * @param data_ostream output stream where data should be extracted
  * 
  * @return `0` on success, `1` otherwise
  */
 int extract(
     std::vector<bmp::image>& images,
-    std::string data_filename
+    std::ostream& data_ostream
 );
 
 #endif  // EXTRACT_H
