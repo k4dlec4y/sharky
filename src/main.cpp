@@ -15,45 +15,50 @@ mode process_args(
     std::string &data_filename
 ) {
     using namespace std::literals;
-    mode m = mode::NO_MODE;
+    mode m = NO_MODE;
     uint8_t chunk_size = 2;
 
     for (auto i = 0u; i < args.size(); ++i) {
+
         if (args[i] == "--chunk_size"sv || args[i] == "-c"sv) {
             if (++i == args.size()) {
                 std::cerr << "-c|--chunk_size was used as the last argument\n";
-                return mode::NO_MODE;
+                return NO_MODE;
             }
             try {
                 chunk_size = static_cast<uint8_t>(std::stoi(args[i]));
                 if (8 % chunk_size != 0) {
                     std::cerr << "supported chunk_size values are: 1, 2, 4, 8\n";
-                    return mode::NO_MODE;
+                    return NO_MODE;
                 }
             }
             catch(const std::exception& _) {
                 std::cerr << "could not convert given chunk_size into an integer\n";
-                return mode::NO_MODE;
+                return NO_MODE;
             }
-        } else if (args[i] == "--hide"sv || args[i] == "-h"sv) {
-            if (m == mode::EXTRACT) {
+        }
+        else if (args[i] == "--hide"sv || args[i] == "-h"sv) {
+            if (m == EXTRACT) {
                 std::cerr << "cannot use hide and extract at the same time\n";
-                return mode::NO_MODE;
+                return NO_MODE;
             }
-            m = mode::HIDE;
-        } else if (args[i] == "--extract"sv || args[i] == "-e"sv) {
-            if (m == mode::HIDE) {
+            m = HIDE;
+        }
+        else if (args[i] == "--extract"sv || args[i] == "-e"sv) {
+            if (m == HIDE) {
                 std::cerr << "cannot use hide and extract at the same time\n";
-                return mode::NO_MODE;
+                return NO_MODE;
             }
-            m = mode::EXTRACT;
-        } else if (args[i] == "--file"sv || args[i] == "-f"sv) {
+            m = EXTRACT;
+        }
+        else if (args[i] == "--file"sv || args[i] == "-f"sv) {
             if (++i == args.size()) {
                 std::cerr << "-f or --file was used as the last argument\n";
-                return mode::NO_MODE;
+                return NO_MODE;
             }
             data_filename = args[i];
-        } else {
+        }
+        else {
             auto im = bmp::image(args[i], chunk_size);
             if (!im.assign_input()) {
                 std::cerr << "image " << args[i] << " could not be opened\n";
@@ -62,15 +67,15 @@ mode process_args(
             }
         }
     }
-    if (m == mode::NO_MODE) {
+    if (m == NO_MODE) {
         std::cerr << "no mode was selected\n";   
-        return mode::NO_MODE;
+        return NO_MODE;
     } else if (data_filename == "") {
-        std::cerr << "could not find message select it with -f/--file\n";
-        return mode::NO_MODE;
+        std::cerr << "no data file was provided, please do so with -f/--file\n";
+        return NO_MODE;
     } else if (images.size() == 0) {
         std::cerr << "no proper images to hide data were supplied\n";
-        return mode::NO_MODE;   
+        return NO_MODE;   
     }
     return m;
 }
@@ -100,7 +105,7 @@ int main(int argc, char *argv[])
 
     switch (process_args(args, images, data_filename))
     {
-    case mode::HIDE: {
+    case HIDE: {
         std::ifstream data_in{data_filename, std::ios::binary};
         if (!data_in.is_open() || !data_in.good())
             return 1;
@@ -109,7 +114,7 @@ int main(int argc, char *argv[])
         return hide(images, data_in);
     }
 
-    case mode::EXTRACT: {
+    case EXTRACT: {
         std::ofstream data_out{data_filename, std::ios::binary};
         if (!data_out.is_open() || !data_out.good())
             return 1;
