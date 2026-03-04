@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "configuration.h"
+#include "chunker.h"
 #include "bitmap.h"
 #include "extract.h"
 
@@ -50,7 +51,7 @@ static void invalid_id_log(
 
 static bool extract_bytes(
     bmp::image_buffer& buffer,
-    bmp::chunker& chunker,
+    chunker& chunker,
     uint8_t chunk_size,
     auto size,
     std::string_view filename,
@@ -72,7 +73,7 @@ bool extract_hidden_metadata(
     std::ostream& err
 ) {
     std::vector<uint8_t> data(HIDDEN_METADATA_SIZE);
-    bmp::chunker chunker{std::span(data.data(), data.size()), MD_CHUNK_SIZE, false};
+    chunker chunker{std::span(data.data(), data.size()), MD_CHUNK_SIZE, false};
 
     if (!extract_bytes(buffer, chunker, MD_CHUNK_SIZE,
                        HIDDEN_METADATA_SIZE, im.filename, err))
@@ -100,7 +101,7 @@ bool extract_data(
     std::span<uint8_t> data,
     std::ostream& err
 ) {
-    bmp::chunker chunker{data, im.chunk_size, false};
+    chunker chunker{data, im.chunk_size, false};
     if (!extract_bytes(buffer, chunker, im.chunk_size,
         data.size(), im.filename, err))
         return false;

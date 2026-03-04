@@ -1,4 +1,5 @@
 add_library(libbmpsharky SHARED
+    chunker.cpp
     bitmap.cpp
     extract.cpp
     hide.cpp

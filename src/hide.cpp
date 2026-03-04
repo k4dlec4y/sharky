@@ -6,6 +6,7 @@
 #include <filesystem>
 
 #include "configuration.h"
+#include "chunker.h"
 #include "bitmap.h"
 #include "hide.h"
 
@@ -41,7 +42,7 @@ static void image_not_necessary_log(
 }
 
 static bool hide_bytes(
-    bmp::chunker &chnkr,
+    chunker &chnkr,
     bmp::image_buffer &buffer,
     std::string_view image_filename,
     std::ostream &err
@@ -80,14 +81,14 @@ bool hide_data(
     }
     metadata.emplace_back(im.chunk_size);
 
-    bmp::chunker metadata_chnkr{
+    chunker metadata_chnkr{
         std::span(metadata.data(), metadata.size()), MD_CHUNK_SIZE};
 
     if (!hide_bytes(metadata_chnkr, buffer, im.filename, err))
         return false;
 
     buffer.change_chunk_size(im.chunk_size);
-    bmp::chunker data_chnkr{to_hide, im.chunk_size};
+    chunker data_chnkr{to_hide, im.chunk_size};
     if (!hide_bytes(data_chnkr, buffer, im.filename, err))
         return false;
 
