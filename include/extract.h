@@ -11,12 +11,17 @@
  * 
  * @param im in-out parameter, contains information about image, after
  * the call `id`, `seq` and `hidden_data_size` will be set
- * @param buffer image buffer, stores ifstream information,
+ * @param buffer image buffer, stores istream information,
  * is later passed to `extract_data()`
+ * @param err output stream for error logging
  * 
  * @return `true` on success, `false` otherwise
  */
-bool extract_hidden_metadata(bmp::image& im, bmp::image_buffer& buffer);
+bool extract_hidden_metadata(
+    bmp::image& im,
+    bmp::image_buffer& buffer,
+    std::ostream& err
+);
 
 /**
  * Extracts hidden data/message from single image.
@@ -24,6 +29,7 @@ bool extract_hidden_metadata(bmp::image& im, bmp::image_buffer& buffer);
  * @param im contains information about image
  * @param buffer image buffer, stores ifstream information
  * @param data span of std::vector, where extracted data will be placed
+ * @param err output stream for error logging
  * 
  * @return `true` on success, `false` otherwise
  * 
@@ -33,7 +39,8 @@ bool extract_hidden_metadata(bmp::image& im, bmp::image_buffer& buffer);
 bool extract_data(
     bmp::image& im,
     bmp::image_buffer& buffer,
-    std::span<uint8_t> data
+    std::span<uint8_t> data,
+    std::ostream& err
 );
 
 /**
@@ -41,12 +48,14 @@ bool extract_data(
  * 
  * @param images reference to vector of images to be extracted
  * @param data_ostream output stream where data should be extracted
+ * @param err output stream for error logging
  * 
  * @return `0` on success, `1` otherwise
  */
 int extract(
     std::vector<bmp::image>& images,
-    std::ostream& data_ostream
+    std::ostream& data_ostream,
+    std::ostream& err = std::cerr
 );
 
 #endif  // EXTRACT_H

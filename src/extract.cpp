@@ -11,15 +11,55 @@
 #include "../include/bitmap.h"
 #include "../include/extract.h"
 
+static void run_out_of_bytes_error_log(
+    std::ostream &os,
+    std::string_view filename
+) {
+    os << "image file " << filename << " run out of bytes too early!\n";
+}
+
+static void invalid_magic_number_log(
+    std::ostream &os,
+    std::string_view filename,
+    uint8_t byte1,
+    uint8_t byte2
+) {
+    os << "image " << filename << " has invalid sharky magic number! ("
+       << std::hex << byte1 << ", " << byte2 << std::dec << ")\n";
+}
+
+static void invalid_seq_number_log(
+    std::ostream &os,
+    std::string_view filename,
+    uint8_t seq,
+    uint8_t expected_seq
+) {
+    os << "image " << filename << " has invalid seq number! ("
+       << seq << ", expected: " << expected_seq << ")\n";
+}
+
+static void invalid_id_log(
+    std::ostream &os,
+    std::string_view filename,
+    uint8_t id1,
+    uint8_t id2
+) {
+    os << "image " << filename << " has different id than other images! ("
+       << id1 << ", expected: " << id2 << ")\n";
+}
+
 static bool extract_bytes(
     bmp::image_buffer& buffer,
     bmp::chunker& chunker,
     uint8_t chunk_size,
-    auto size
+    auto size,
+    std::string_view filename,
+    std::ostream& err
 ) {
     uint8_t chunk;
     for (auto _ = 0u; _ < size * (8 / chunk_size); ++_) {
         if (!buffer.extract_chunk(chunk) || !chunker.send_chunk(chunk)) {
+            run_out_of_bytes_error_log(err, filename);
             return false;
         }
     }
@@ -28,21 +68,18 @@ static bool extract_bytes(
 
 bool extract_hidden_metadata(
     bmp::image& im,
-    bmp::image_buffer& buffer
+    bmp::image_buffer& buffer,
+    std::ostream& err
 ) {
     std::vector<uint8_t> data(HIDDEN_METADATA_SIZE);
     bmp::chunker chunker{std::span(data.data(), data.size()), MD_CHUNK_SIZE, false};
 
-    if (!extract_bytes(buffer, chunker, MD_CHUNK_SIZE, HIDDEN_METADATA_SIZE)) {
-        std::cerr << "image " << im.filename
-                  << " run out of bytes too early!\n";
+    if (!extract_bytes(buffer, chunker, MD_CHUNK_SIZE,
+                       HIDDEN_METADATA_SIZE, im.filename, err))
         return false;
-    }
 
     if (data[0] != 'S' || data[1] != 'H') {
-        std::cerr << "image " << im.filename
-                  << " has invalid sharky magic number! ("
-                  << int(data[0]) << ", " << int(data[1]) << ")\n";
+        invalid_magic_number_log(err, im.filename, data[0], data[1]);
         return false;
     }
 
@@ -60,20 +97,21 @@ bool extract_hidden_metadata(
 bool extract_data(
     bmp::image& im,
     bmp::image_buffer& buffer,
-    std::span<uint8_t> data
+    std::span<uint8_t> data,
+    std::ostream& err
 ) {
-    bmp::chunker chunker {data, im.chunk_size, false};
-    if (!extract_bytes(buffer, chunker, im.chunk_size, data.size())) {
-        std::cerr << "image " << im.filename
-                  << " run out of bytes too early!\n";
+    bmp::chunker chunker{data, im.chunk_size, false};
+    if (!extract_bytes(buffer, chunker, im.chunk_size,
+        data.size(), im.filename, err))
         return false;
-    }
+
     return true;
 }
 
 int extract(
     std::vector<bmp::image>& images,
-    std::ostream& data_ostream
+    std::ostream& data_ostream,
+    std::ostream& err
 ) {
     assert(images.size() > 0);
     std::vector<bmp::image_buffer> buffers{};
@@ -81,7 +119,7 @@ int extract(
 
     for (auto i = 0u; i < images.size(); ++i) {
         buffers.emplace_back(images[i], MD_CHUNK_SIZE);
-        if (!extract_hidden_metadata(images[i], buffers[i]))
+        if (!extract_hidden_metadata(images[i], buffers[i], err))
             return 1;
         data_size += images[i].hidden_data_size;
     }
@@ -94,9 +132,7 @@ int extract(
     for (auto i = 0u; i < images.size(); ++i) {
         auto& im = images[indx[i]];
         if (im.seq != i) {
-            std::cerr << "image " << im.filename << " has invalid seq number,"
-                      << "it should be " << i << " but its seq number is "
-                      << im.seq;
+            invalid_seq_number_log(err, im.filename, im.seq, i);
             return 1;
         }
     }
@@ -104,9 +140,7 @@ int extract(
     uint8_t id = images[indx[0]].id;
     for (auto &im : images) {
         if (im.id != id) {
-            std::cerr << "image " << im.filename << " has invalid id number,"
-                      << "id of first image in sequence is " << id
-                      << " but its seq number is "<< im.seq;
+            invalid_id_log(err, im.filename, im.id, id);
             return 1;
         }
     }
@@ -116,9 +150,10 @@ int extract(
     for (auto i = 0u; i < images.size(); ++i) {
         auto j = indx[i];
         auto n = images[j].hidden_data_size;
+
         buffers[j].change_chunk_size(images[j].chunk_size);
         if (!extract_data(images[j], buffers[j],
-                          std::span(data.data() + data_index, n)))
+                          std::span(data.data() + data_index, n), err))
             return 1;
         data_index += n;
     }
