@@ -9,6 +9,23 @@
 #include "../include/bitmap.h"
 #include "../include/hide.h"
 
+static bool hide_bytes(
+    bmp::chunker &chnkr,
+    bmp::image_buffer &buffer,
+    std::string_view image_filename
+) {
+    uint8_t chunk;
+    while (chnkr.get_chunk(chunk)) {
+        if (!buffer.hide_chunk(chunk)) {
+            std::cerr << "image file " << image_filename << " is smaller "
+                      << "than expected or there is not enough space "
+                      << "for altered image on disk\n";
+            return false;
+        }
+    }
+    return true;
+}
+
 bool hide_data(
     bmp::image &im,
     std::span<uint8_t> to_hide,
@@ -32,29 +49,16 @@ bool hide_data(
     }
     metadata.emplace_back(im.chunk_size);
 
-    uint8_t chunk;
     bmp::chunker metadata_chnkr{
         std::span(metadata.data(), metadata.size()), MD_CHUNK_SIZE};
 
-    while (metadata_chnkr.get_chunk(chunk)) {
-        if (!buffer.hide_chunk(chunk)) {
-            std::cerr << "image file " << im.filename
-                      << " is smaller than expected or there is not enough space "
-                      << "for altered image on disk (io error)\n";
-            return false;
-        }
-    }
+    if (!hide_bytes(metadata_chnkr, buffer, im.filename))
+        return false;
 
     buffer.change_chunk_size(im.chunk_size);
     bmp::chunker data_chnkr{to_hide, im.chunk_size};
-    while (data_chnkr.get_chunk(chunk)) {
-        if (!buffer.hide_chunk(chunk)) {
-            std::cerr << "image file " << im.filename
-                      << " is smaller than expected or there is not enough space "
-                      << "for altered image on disk (io error)\n";
-            return false;
-        }
-    }
+    if (!hide_bytes(data_chnkr, buffer, im.filename))
+        return false;
 
     buffer.copy_rest();
     return true;
