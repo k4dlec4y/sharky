@@ -81,11 +81,12 @@ static uint8_t get_mask(uint8_t chunk_size) {
            : 0xffu;
 }
 
-chunker::chunker(std::span<uint8_t> data, uint8_t chunk_size, bool is_get)
-    : data(data), chunk_size(chunk_size),
-      chunks((8 + chunk_size - 1) / chunk_size),
-      chunks_index(is_get ? chunks.size() : 0),
-      mask(get_mask(chunk_size)) {}
+chunker::chunker(std::span<uint8_t> data, uint8_t chunk_size, bool is_splitting)
+    : data(data)
+    , chunk_size(chunk_size)
+    , chunks((8 + chunk_size - 1) / chunk_size)
+    , chunks_index(is_splitting ? chunks.size() : 0)
+    , mask(get_mask(chunk_size)) {}
 
 bool chunker::get_chunk(uint8_t &chunk) {
     if (chunks_index >= chunks.size()) {
@@ -126,9 +127,10 @@ void chunker::merge_chunks() {
 }
 
 image_buffer::image_buffer(bmp::image &im, uint8_t chunk_size)
-    : im(im), mask(get_mask(chunk_size)) {
+    : im(im)
+    , mask(get_mask(chunk_size))
+    , erase_mask(~mask) {
     im.set_data_start();
-    erase_mask = ~mask;
 }
 
 bool image_buffer::hide_chunk(uint8_t chunk) {
