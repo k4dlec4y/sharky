@@ -5,7 +5,7 @@
 #include <iostream>
 #include <filesystem>
 
-#include "../include/bitmap.h"
+#include "bitmap.h"
 
 namespace bmp {
 

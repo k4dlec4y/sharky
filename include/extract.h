@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../include/bitmap.h"
+#include "bitmap.h"
 
 /**
  * Extract, check and load metadata about hidden data from the image

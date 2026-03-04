@@ -7,9 +7,9 @@
 #include <numeric>
 #include <iostream>
 
-#include "../include/configuration.h"
-#include "../include/bitmap.h"
-#include "../include/extract.h"
+#include "configuration.h"
+#include "bitmap.h"
+#include "extract.h"
 
 static void run_out_of_bytes_error_log(
     std::ostream &os,

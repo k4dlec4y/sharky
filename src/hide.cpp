@@ -5,9 +5,9 @@
 #include <random>
 #include <filesystem>
 
-#include "../include/configuration.h"
-#include "../include/bitmap.h"
-#include "../include/hide.h"
+#include "configuration.h"
+#include "bitmap.h"
+#include "hide.h"
 
 static void run_out_of_bytes_log(std::ostream &os, std::string_view filename) {
     os << "image file " << filename << " is smaller than expected or there "

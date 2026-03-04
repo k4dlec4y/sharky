@@ -8,7 +8,7 @@
 #include <functional>
 #include <memory>
 
-#include "../include/configuration.h"
+#include "configuration.h"
 
 namespace bmp {
 

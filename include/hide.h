@@ -3,6 +3,8 @@
 
 #include <span>
 
+#include "bitmap.h"
+
 /**
  * @brief Hides data part into a single image.
  * 

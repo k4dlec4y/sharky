@@ -2,10 +2,10 @@
 #include <string>
 #include <string_view>
 
-#include "../include/configuration.h"
-#include "../include/bitmap.h"
-#include "../include/hide.h"
-#include "../include/extract.h"
+#include "configuration.h"
+#include "bitmap.h"
+#include "hide.h"
+#include "extract.h"
 
 enum mode { NO_MODE, HIDE, EXTRACT };
 
