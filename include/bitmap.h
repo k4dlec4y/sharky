@@ -35,7 +35,7 @@ struct image {
     /* this excludes the size of metadata! */
     std::size_t hidden_data_size{0};
     /* bitmap padding */
-    int padding{0};
+    uint8_t padding{0};
 
     /* used for extraction */
     uint8_t id{0};
@@ -239,7 +239,7 @@ private:
 
     /* current row position in the image while processing */
     uint32_t x{0};
-    std::size_t skip{0};
+    uint8_t skip{0};
 };
 
 /**

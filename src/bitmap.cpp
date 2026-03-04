@@ -203,8 +203,9 @@ static uint32_t to_uint32(const uint8_t *data) {
            (static_cast<uint32_t>(data[3]) << 24);
 }
 
-static int count_padding(int width, int channels) {
-    return (4 - (width * channels) % 4) % 4;
+static uint8_t count_padding(auto width, auto channels) {
+    /* & 0b11 == % 4 */
+    return (4 - (width * channels) & 0b11) & 0b11;
 }
 
 bool load_header(image &im, std::ostream &err) {
