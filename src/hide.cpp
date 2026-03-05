@@ -1,14 +1,13 @@
+#include "hide.h"
+
 #include <span>
 #include <iostream>
-#include <string>
 #include <algorithm>
 #include <random>
-#include <filesystem>
 
 #include "configuration.h"
 #include "chunker.h"
 #include "bitmap.h"
-#include "hide.h"
 
 static void run_out_of_bytes_log(std::ostream &os, std::string_view filename) {
     os << "image file " << filename << " is smaller than expected or there "

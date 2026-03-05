@@ -1,6 +1,6 @@
-#include <ranges>
-
 #include "chunker.h"
+
+#include <ranges>
 
 uint8_t get_mask(uint8_t chunk_size) {
     return chunk_size < 8

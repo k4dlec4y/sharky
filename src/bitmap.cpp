@@ -1,11 +1,11 @@
+#include "bitmap.h"
+
 #include <array>
-#include <span>
-#include <ranges>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 
-#include "bitmap.h"
+#include "configuration.h"
 /* due to get_mask */
 #include "chunker.h"
 

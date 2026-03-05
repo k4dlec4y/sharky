@@ -4,11 +4,9 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <fstream>
 #include <functional>
 #include <memory>
-
-#include "configuration.h"
+#include <iostream>
 
 namespace bmp {
 

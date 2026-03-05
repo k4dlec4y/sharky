@@ -1,8 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <string_view>
 
-#include "configuration.h"
 #include "bitmap.h"
 #include "hide.h"
 #include "extract.h"

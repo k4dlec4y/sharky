@@ -1,16 +1,15 @@
+#include "extract.h"
+
 #include <cassert>
 #include <vector>
 #include <span>
-#include <tuple>
 #include <algorithm>
-#include <ranges>
 #include <numeric>
 #include <iostream>
 
 #include "configuration.h"
 #include "chunker.h"
 #include "bitmap.h"
-#include "extract.h"
 
 static void run_out_of_bytes_error_log(
     std::ostream &os,
