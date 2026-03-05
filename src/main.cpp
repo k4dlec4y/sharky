@@ -62,7 +62,7 @@ mode process_args(
             auto im = bmp::image(args[i], chunk_size);
             if (!im.assign_input()) {
                 std::cerr << "image " << args[i] << " could not be opened\n";
-            } else if (bmp::load_header(im)) {
+            } else if (im.load_header()) {
                 images.push_back(std::move(im));
             }
         }

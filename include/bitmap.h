@@ -65,6 +65,20 @@ struct image {
     bool assign_input(std::unique_ptr<std::istream> input);
 
     /**
+    * Reads, checks and stores relevant information about bmp image into image
+    * struct.
+    * 
+    * @param err stream where error messages will be written
+    * 
+    * @return `true` on success, `false` otherwise
+    * 
+    * @note image should have its input stream already ready to read before calling
+    * this function, and after calling this function, the input stream will
+    * be positioned at the beginning of the image pixel data.
+    */
+    bool load_header(std::ostream &err = std::cerr);
+
+    /**
      * @brief Trims the filename and returns path to output file,
      * which is "sharky/bitmaps_out/" + trimmed filename
      * 
@@ -190,21 +204,6 @@ private:
     uint32_t x{0};
     uint8_t skip{0};
 };
-
-/**
- * Reads, checks and stores relevant information about bmp image into image
- * struct.
- * 
- * @param im reference to image struct, where information is stored
- * @param err stream where error messages will be written, default is std::cerr
- * 
- * @return `true` on success, `false` otherwise
- * 
- * @note `im` should have its input stream already ready to read before calling
- * this function, and after calling this function, the input stream will
- * be positioned at the beginning of the image pixel data.
- */
-bool load_header(image &im, std::ostream &err = std::cerr);
 
 }
 

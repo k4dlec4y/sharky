@@ -30,6 +30,83 @@ bool image::assign_input(std::unique_ptr<std::istream> input) {
     return this->input != nullptr;
 }
 
+static uint16_t to_uint16(const uint8_t *data) {
+    return static_cast<uint16_t>(data[0]) |
+           (static_cast<uint16_t>(data[1]) << 8);
+}
+
+static uint32_t to_uint32(const uint8_t *data) {
+    return static_cast<uint32_t>(data[0]) |
+           (static_cast<uint32_t>(data[1]) << 8) |
+           (static_cast<uint32_t>(data[2]) << 16) |
+           (static_cast<uint32_t>(data[3]) << 24);
+}
+
+static uint8_t count_padding(auto width, auto channels) {
+    /* & 0b11 == % 4 */
+    return (4 - (width * channels) & 0b11) & 0b11;
+}
+
+bool image::load_header(std::ostream &err) {
+    const int smaller_header_size = 14;
+
+    auto file_size = std::filesystem::file_size(filename);
+    header.resize(smaller_header_size);
+
+    if (file_size < smaller_header_size) {
+        err << "file " << filename << " is too small to be bmp\n";
+        return false;
+    }
+    if (!input->read(reinterpret_cast<char *>(header.data()),
+                     smaller_header_size)) {
+        err << "file " << filename << " could not be read\n";
+        return false;
+    }
+    if (header[0] != 'B' || header[1] != 'M') {
+        err << "file " << filename << " has invalid magic number to be"
+               " bmp file: " << header[0] << header[1] << '\n';
+        return false;
+    }
+    if (to_uint32(header.data() + 2) != file_size) {
+        err << "file " << filename << " - the actual size and size "
+               "in bmp header does not match\n";
+        return false;
+    }
+    data_offset = to_uint32(header.data() + 10);
+    header.resize(data_offset);
+    if (!input->read(reinterpret_cast<char *>(header.data()) + smaller_header_size,
+                       data_offset - smaller_header_size)) {
+        err << "file " << filename << " could not be read\n";
+        return false;
+    }
+    width = to_uint32(header.data() + 18);
+    height = to_uint32(header.data() + 22);
+
+    uint16_t bit_count = to_uint16(header.data() + 28);
+    if (bit_count != 24 && bit_count != 32) {
+        err << "file " << filename << " has invalid bit count "
+               "for single pixel, use 24/32\n";
+        return false;
+    }
+    channel_count = bit_count / 8;
+    capacity = width * channel_count * height;
+    /* 4 * because chunk_size for metadeta will be always 2 */
+    if (capacity <= 4 * HIDDEN_METADATA_SIZE) {
+        err << "file " << filename << " is too small to hide data\n";
+        return false;
+    }
+    capacity -= 4 * HIDDEN_METADATA_SIZE;
+
+    padding = count_padding(width, channel_count);
+
+    uint32_t compression = to_uint32(header.data() + 30);
+    if (compression) {
+        err << "file " << filename << " is compressed\n";
+        return false;
+    }
+    return true;
+}
+
 std::string image::get_output_path() {
     using namespace std::string_literals;
 
@@ -140,83 +217,6 @@ bool image_buffer::move_index(std::function<bool(void)> read_or_writeread) {
             break;
         ++index;
         --skip;
-    }
-    return true;
-}
-
-static uint16_t to_uint16(const uint8_t *data) {
-    return static_cast<uint16_t>(data[0]) |
-           (static_cast<uint16_t>(data[1]) << 8);
-}
-
-static uint32_t to_uint32(const uint8_t *data) {
-    return static_cast<uint32_t>(data[0]) |
-           (static_cast<uint32_t>(data[1]) << 8) |
-           (static_cast<uint32_t>(data[2]) << 16) |
-           (static_cast<uint32_t>(data[3]) << 24);
-}
-
-static uint8_t count_padding(auto width, auto channels) {
-    /* & 0b11 == % 4 */
-    return (4 - (width * channels) & 0b11) & 0b11;
-}
-
-bool load_header(image &im, std::ostream &err) {
-    const int smaller_header_size = 14;
-
-    auto file_size = std::filesystem::file_size(im.filename);
-    im.header.resize(smaller_header_size);
-
-    if (file_size < smaller_header_size) {
-        err << "file " << im.filename << " is too small to be bmp\n";
-        return false;
-    }
-    if (!im.input->read(reinterpret_cast<char *>(im.header.data()),
-                       smaller_header_size)) {
-        err << "file " << im.filename << " could not be read\n";
-        return false;
-    }
-    if (im.header[0] != 'B' || im.header[1] != 'M') {
-        err << "file " << im.filename << " has invalid magic number to be"
-                  << " bmp file: " << im.header[0] << im.header[1] << '\n';
-        return false;
-    }
-    if (to_uint32(im.header.data() + 2) != file_size) {
-        err << "file " << im.filename << " - the actual size and size "
-                  << "in bmp header does not match\n";
-        return false;
-    }
-    im.data_offset = to_uint32(im.header.data() + 10);
-    im.header.resize(im.data_offset);
-    if (!im.input->read(reinterpret_cast<char *>(im.header.data()) + smaller_header_size,
-                       im.data_offset - smaller_header_size)) {
-        err << "file " << im.filename << " could not be read\n";
-        return false;
-    }
-    im.width = to_uint32(im.header.data() + 18);
-    im.height = to_uint32(im.header.data() + 22);
-
-    uint16_t bit_count = to_uint16(im.header.data() + 28);
-    if (bit_count != 24 && bit_count != 32) {
-        err << "file " << im.filename << " has invalid bit count "
-                  << "for single pixel, use 24/32\n";
-        return false;
-    }
-    im.channel_count = bit_count / 8;
-    im.capacity = im.width * im.channel_count * im.height;
-    /* 4 * because chunk_size for metadeta will be always 2 */
-    if (im.capacity <= 4 * HIDDEN_METADATA_SIZE) {
-        err << "file " << im.filename << " is too small to hide data\n";
-        return false;
-    }
-    im.capacity -= 4 * HIDDEN_METADATA_SIZE;
-
-    im.padding = count_padding(im.width, im.channel_count);
-
-    uint32_t compression = to_uint32(im.header.data() + 30);
-    if (compression) {
-        err << "file " << im.filename << " is compressed\n";
-        return false;
     }
     return true;
 }
