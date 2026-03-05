@@ -1,7 +1,7 @@
 #include "chunker.h"
 #include <gtest/gtest.h>
 
-TEST(get_mask, returns_correct_mask) {
+TEST(chunker, get_mask_returns_correct_mask) {
     EXPECT_EQ(get_mask(1), 0b01);
     EXPECT_EQ(get_mask(2), 0b11);
     EXPECT_EQ(get_mask(4), 0b1111);
