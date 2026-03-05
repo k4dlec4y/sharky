@@ -27,10 +27,10 @@ bool chunker::get_chunk(uint8_t &chunk) {
 }
 
 bool chunker::send_chunk(uint8_t chunk) {
+    if (data_index >= data.size())
+        return false;
     chunks[chunks_index++] = chunk;
     if (chunks_index >= chunks.size()) {
-        if (data_index >= data.size())
-            return false;
         merge_chunks();
         chunks_index = 0;
     }
