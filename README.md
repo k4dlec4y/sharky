@@ -7,6 +7,7 @@
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Tests](#tests)
 - [Limitations](#limitations)
 - [License](#license)
 - [Author](#author)
@@ -158,6 +159,14 @@ This command:
 - Extracts hidden data from the provided images
 - Restores the original payload into data/data_out
 - Uses embedded metadata to determine decoding parameters and image order (-c 4 is ignored)
+
+## Tests
+Unit tests are implemented using GoogleTest and cover most of the core functionality.
+The tests can be run with:
+```bash
+build/run_tests
+```
+The CLI test is also available in the `tests/cli_test.sh` script, which performs an end-to-end test of the hiding and extraction process using the command-line interface.
 
 ## Limitations
 - Only uncompressed BMP files are supported
