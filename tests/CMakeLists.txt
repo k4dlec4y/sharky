@@ -1,5 +1,6 @@
 add_executable(run_tests
     chunker_test.cpp
+    bitmap_test.cpp
 )
 
 target_link_libraries(run_tests
