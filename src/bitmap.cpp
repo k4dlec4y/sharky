@@ -3,7 +3,6 @@
 #include <array>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
 
 #include "configuration.h"
 /* due to get_mask */
@@ -48,35 +47,40 @@ static uint8_t count_padding(auto width, auto channels) {
 }
 
 bool image::load_header(std::ostream &err) {
-    const int smaller_header_size = 14;
-
-    auto file_size = std::filesystem::file_size(filename);
+    const auto smaller_header_size = 14u;
     header.resize(smaller_header_size);
 
-    if (file_size < smaller_header_size) {
-        err << "file " << filename << " is too small to be bmp\n";
-        return false;
-    }
     if (!input->read(reinterpret_cast<char *>(header.data()),
                      smaller_header_size)) {
-        err << "file " << filename << " could not be read\n";
+        err << "there was an error while reading file " << filename
+            << ", bytes read: " << input->gcount() << '\n';
         return false;
     }
     if (header[0] != 'B' || header[1] != 'M') {
-        err << "file " << filename << " has invalid magic number to be"
-               " bmp file: " << header[0] << header[1] << '\n';
+        err << "file " << filename << " has invalid magic number to be bmp file"
+               " (expected BM, got " << header[0] << header[1] << ")\n";
         return false;
     }
-    if (to_uint32(header.data() + 2) != file_size) {
-        err << "file " << filename << " - the actual size and size "
-               "in bmp header does not match\n";
-        return false;
-    }
+
     data_offset = to_uint32(header.data() + 10);
+    if (data_offset <= smaller_header_size) {
+        err << "data offset in header of " << filename
+            << " is too small to be bmp\n";
+        return false;
+    }
+
+    auto file_size = to_uint32(header.data() + 2);
+    if (file_size < data_offset) {
+        err << "the file size in header of " << filename
+            << " is smaller than data offset\n";
+        return false;
+    }
+
     header.resize(data_offset);
     if (!input->read(reinterpret_cast<char *>(header.data()) + smaller_header_size,
                        data_offset - smaller_header_size)) {
-        err << "file " << filename << " could not be read\n";
+        err << "there was an error while reading file " << filename
+            << ", bytes read: " << input->gcount() << '\n';
         return false;
     }
     width = to_uint32(header.data() + 18);
@@ -84,15 +88,15 @@ bool image::load_header(std::ostream &err) {
 
     uint16_t bit_count = to_uint16(header.data() + 28);
     if (bit_count != 24 && bit_count != 32) {
-        err << "file " << filename << " has invalid bit count "
-               "for single pixel, use 24/32\n";
+        err << "file " << filename << " has unsupported bit count: "
+            << bit_count << " (only 24 and 32 are supported)\n";
         return false;
     }
     channel_count = bit_count / 8;
     capacity = width * channel_count * height;
-    /* 4 * because chunk_size for metadeta will be always 2 */
+    /* 4 * because chunk_size for metadata will be always 2 */
     if (capacity <= 4 * HIDDEN_METADATA_SIZE) {
-        err << "file " << filename << " is too small to hide data\n";
+        err << "file " << filename << " is too small to hide any data\n";
         return false;
     }
     capacity -= 4 * HIDDEN_METADATA_SIZE;
