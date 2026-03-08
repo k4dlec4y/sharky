@@ -2,6 +2,7 @@
 set -e
 
 rm -f data/data_out
+mkdir -p bitmaps_in bitmaps_out data
 
 build/sharky \
     --hide \

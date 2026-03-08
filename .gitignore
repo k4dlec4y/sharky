@@ -2,6 +2,5 @@ sharky
 build/
 .vscode
 sandbox/
-bitmaps_out/
 data/data_out
 .cache/
