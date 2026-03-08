@@ -8,14 +8,13 @@
 /* due to get_mask */
 #include "chunker.h"
 
-namespace bmp {
 
-image::image(const std::string &filename, uint8_t chunk_size)
+bmp_image::bmp_image(const std::string &filename, uint8_t chunk_size)
     : filename(filename)
     , chunk_size(chunk_size)
     , cells_per_byte(8 / chunk_size) {}
 
-bool image::assign_input() {
+bool bmp_image::assign_input() {
     auto ifstream = std::make_unique<std::ifstream>(filename, std::ios::binary);
     if (ifstream == nullptr || !ifstream->is_open() || !ifstream->good()) {
         return false;
@@ -24,7 +23,7 @@ bool image::assign_input() {
     return true;
 }
 
-bool image::assign_input(std::unique_ptr<std::istream> input) {
+bool bmp_image::assign_input(std::unique_ptr<std::istream> input) {
     this->input = std::move(input);
     return this->input != nullptr;
 }
@@ -46,7 +45,7 @@ static uint8_t count_padding(auto width, auto channels) {
     return (4 - (width * channels) & 0b11) & 0b11;
 }
 
-bool image::load_header(std::ostream &err) {
+bool bmp_image::load_header(std::ostream &err) {
     const auto smaller_header_size = 14u;
     header.resize(smaller_header_size);
 
@@ -111,7 +110,7 @@ bool image::load_header(std::ostream &err) {
     return true;
 }
 
-std::string image::get_output_path() {
+std::string bmp_image::get_output_path() {
     using namespace std::string_literals;
 
     auto basename_index = filename.rfind('/');
@@ -124,14 +123,14 @@ std::string image::get_output_path() {
     return "bitmaps_out/"s + basename;
 }
 
-bool image::write_header_to_output() {
+bool bmp_image::write_header_to_output() {
     if (!output || !output->good())
         return false;
     output->write(reinterpret_cast<char *>(header.data()), header.size());
     return output->good();
 }
 
-bool image::assign_output() {
+bool bmp_image::assign_output() {
     auto ofstream = std::make_unique<std::ofstream>(
         get_output_path(), std::ios::binary);
     if (ofstream == nullptr || !ofstream->is_open() || !ofstream->good()) {
@@ -141,31 +140,31 @@ bool image::assign_output() {
     return true;
 }
 
-bool image::assign_output(std::unique_ptr<std::ostream> output) {
+bool bmp_image::assign_output(std::unique_ptr<std::ostream> output) {
     this->output = std::move(output);
     return this->output != nullptr;
 }
 
-auto image::operator<=>(const image &rhs) const {
+auto bmp_image::operator<=>(const bmp_image &rhs) const {
     return this->seq <=> rhs.seq;
 }
 
-void image::set_data_start() {
+void bmp_image::set_data_start() {
     this->input->seekg(this->data_offset, std::ios::beg);
 }
 
-std::size_t image::byte_capacity() const {
+std::size_t bmp_image::byte_capacity() const {
     return capacity / cells_per_byte;
 }
 
-image_buffer::image_buffer(bmp::image &im, uint8_t chunk_size)
+bmp_image_buffer::bmp_image_buffer(bmp_image &im, uint8_t chunk_size)
     : im(im)
     , mask(get_mask(chunk_size))
     , erase_mask(~mask) {
     im.set_data_start();
 }
 
-bool image_buffer::hide_chunk(uint8_t chunk) {
+bool bmp_image_buffer::hide_chunk(uint8_t chunk) {
     if (!move_index([this]() { return write_and_read(); }))
         return false;
 
@@ -175,7 +174,7 @@ bool image_buffer::hide_chunk(uint8_t chunk) {
     return true;
 }
 
-bool image_buffer::extract_chunk(uint8_t &chunk) {
+bool bmp_image_buffer::extract_chunk(uint8_t &chunk) {
     if (!move_index([this]() { return read(); }))
         return false;
 
@@ -184,16 +183,16 @@ bool image_buffer::extract_chunk(uint8_t &chunk) {
     return true;
 }
 
-void image_buffer::change_chunk_size(uint8_t chunk_size) {
+void bmp_image_buffer::change_chunk_size(uint8_t chunk_size) {
     mask = get_mask(chunk_size);
     erase_mask = ~mask;
 }
 
-void image_buffer::copy_rest() {
+void bmp_image_buffer::copy_rest() {
     while (write_and_read()) {}
 }
 
-bool image_buffer::read() {
+bool bmp_image_buffer::read() {
     buffer.fill(static_cast<char>(0));
     im.input->read(buffer.data(), BUFFER_SIZE);
     loaded = im.input->gcount();
@@ -201,13 +200,13 @@ bool image_buffer::read() {
     return loaded > 0;
 }
 
-bool image_buffer::write_and_read() {
+bool bmp_image_buffer::write_and_read() {
     if (loaded > 0)
         im.output->write(buffer.data(), loaded);
     return read();
 }
 
-bool image_buffer::move_index(std::function<bool(void)> read_or_writeread) {
+bool bmp_image_buffer::move_index(std::function<bool(void)> read_or_writeread) {
     while (true) {
         if (index >= loaded) {
             if (!read_or_writeread())
@@ -223,6 +222,4 @@ bool image_buffer::move_index(std::function<bool(void)> read_or_writeread) {
         --skip;
     }
     return true;
-}
-
 }

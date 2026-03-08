@@ -42,7 +42,7 @@ static void image_not_necessary_log(
 
 static bool hide_bytes(
     chunker &chnkr,
-    bmp::image_buffer &buffer,
+    bmp_image_buffer &buffer,
     std::string_view image_filename,
     std::ostream &err
 ) {
@@ -57,13 +57,13 @@ static bool hide_bytes(
 }
 
 bool hide_data(
-    bmp::image &im,
+    bmp_image &im,
     std::span<uint8_t> to_hide,
     uint8_t id,
     uint8_t seq,
     std::ostream &err
 ) {
-    bmp::image_buffer buffer{im, MD_CHUNK_SIZE};
+    bmp_image_buffer buffer{im, MD_CHUNK_SIZE};
 
     std::vector<uint8_t> metadata{};
     /* magic number for sharky images */
@@ -103,7 +103,7 @@ static uint8_t generate_id() {
 }
 
 int hide(
-    std::vector<bmp::image> &images,
+    std::vector<bmp_image> &images,
     std::istream &data_in,
     std::ostream &out,
     std::ostream &err

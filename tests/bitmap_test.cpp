@@ -9,14 +9,14 @@
 #include "chunker.h"
 
 TEST(bmp_image, constructor_initializes_members) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     EXPECT_EQ(im.filename, "test_image");
     EXPECT_EQ(im.chunk_size, 2);
     EXPECT_EQ(im.cells_per_byte, 4);
 }
 
 TEST(bmp_image, assign_input_works) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     ASSERT_TRUE(im.assign_input(std::move(ss)));
     EXPECT_NE(im.input, nullptr);
@@ -24,7 +24,7 @@ TEST(bmp_image, assign_input_works) {
 }
 
 TEST(bmp_image, load_header_with_small_header_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     *ss << "BM";
     std::stringstream err;
@@ -36,7 +36,7 @@ TEST(bmp_image, load_header_with_small_header_returns_false) {
 }
 
 TEST(bmp_image, load_header_invalid_magic_number_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     /* invalid magic number */
@@ -49,7 +49,7 @@ TEST(bmp_image, load_header_invalid_magic_number_returns_false) {
 }
 
 TEST(bmp_image, load_header_data_offset_smaller_than_smaller_header_size_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     const unsigned char data[] = {
@@ -74,7 +74,7 @@ TEST(bmp_image, load_header_data_offset_smaller_than_smaller_header_size_returns
 }
 
 TEST(bmp_image, load_header_file_size_smaller_than_data_offset_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     const unsigned char data[] = {
@@ -99,7 +99,7 @@ TEST(bmp_image, load_header_file_size_smaller_than_data_offset_returns_false) {
 }
 
 TEST(bmp_image, load_header_invalid_bit_count_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     const unsigned char data[] = {
@@ -125,7 +125,7 @@ TEST(bmp_image, load_header_invalid_bit_count_returns_false) {
 }
 
 TEST(bmp_image, load_header_image_with_small_capacity_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     const unsigned char data[] = {
@@ -150,7 +150,7 @@ TEST(bmp_image, load_header_image_with_small_capacity_returns_false) {
 }
 
 TEST(bmp_image, load_header_image_with_compression_returns_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     const unsigned char data[] = {
@@ -175,7 +175,7 @@ TEST(bmp_image, load_header_image_with_compression_returns_false) {
 }
 
 TEST(bmp_image, load_header_valid) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     std::stringstream err;
     const unsigned char data[] = {
@@ -204,7 +204,7 @@ TEST(bmp_image, load_header_valid) {
 }
 
 TEST(bmp_image, get_output_path_return_correct_path) {
-    bmp::image im("path/to/image.bmp", 2);
+    bmp_image im("path/to/image.bmp", 2);
     EXPECT_EQ(im.get_output_path(), "bitmaps_out/image.bmp");
     im.filename = "image2.bmp";
     EXPECT_EQ(im.get_output_path(), "bitmaps_out/image2.bmp");
@@ -213,7 +213,7 @@ TEST(bmp_image, get_output_path_return_correct_path) {
 }
 
 TEST(bmp_image, assign_output_works) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     ASSERT_TRUE(im.assign_output(std::move(ss)));
     EXPECT_NE(im.output, nullptr);
@@ -221,15 +221,15 @@ TEST(bmp_image, assign_output_works) {
 }
 
 TEST(bmp_image_buffer, constructor_initializes_members) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     auto ss = std::make_unique<std::stringstream>();
     ASSERT_TRUE(im.assign_input(std::move(ss)));
-    bmp::image_buffer ib(im, 2);
+    bmp_image_buffer ib(im, 2);
     EXPECT_TRUE(true);
 }
 
 TEST(bmp_image_buffer, hide_chunk_size_2_works) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     im.data_offset = 0;
     auto is = std::make_unique<std::stringstream>();
     const unsigned char im_data[] = {
@@ -241,7 +241,7 @@ TEST(bmp_image_buffer, hide_chunk_size_2_works) {
     auto os = std::make_unique<std::stringstream>();
     ASSERT_TRUE(im.assign_output(std::move(os)));
 
-    bmp::image_buffer ib(im, 2);
+    bmp_image_buffer ib(im, 2);
 
     std::vector<uint8_t> to_hide{0b10101010, 0b01010101, 0b11110000};
     chunker chnkr{to_hide, 2};
@@ -264,7 +264,7 @@ TEST(bmp_image_buffer, hide_chunk_size_2_works) {
 }
 
 TEST(bmp_image_buffer, hide_chunk_size_8_works) {
-    bmp::image im("test_image", 8);
+    bmp_image im("test_image", 8);
     im.data_offset = 0;
     auto is = std::make_unique<std::stringstream>();
     const unsigned char im_data[] = {
@@ -276,7 +276,7 @@ TEST(bmp_image_buffer, hide_chunk_size_8_works) {
     auto os = std::make_unique<std::stringstream>();
     ASSERT_TRUE(im.assign_output(std::move(os)));
 
-    bmp::image_buffer ib(im, 8);
+    bmp_image_buffer ib(im, 8);
 
     std::vector<uint8_t> to_hide{0b10101010, 0b01010101, 0b11110000};
     chunker chnkr{to_hide, 8};
@@ -299,7 +299,7 @@ TEST(bmp_image_buffer, hide_chunk_size_8_works) {
 }
 
 TEST(bmp_image_buffer, hide_chunk_with_small_capacity_return_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     im.data_offset = 0;
     auto is = std::make_unique<std::stringstream>();
     const unsigned char im_data[] = {
@@ -310,7 +310,7 @@ TEST(bmp_image_buffer, hide_chunk_with_small_capacity_return_false) {
     auto os = std::make_unique<std::stringstream>();
     ASSERT_TRUE(im.assign_output(std::move(os)));
 
-    bmp::image_buffer ib(im, 2);
+    bmp_image_buffer ib(im, 2);
 
     std::vector<uint8_t> to_hide{0b10101010, 0b01010101, 0b11110000};
     chunker chnkr{to_hide, 2};
@@ -325,7 +325,7 @@ TEST(bmp_image_buffer, hide_chunk_with_small_capacity_return_false) {
 }
 
 TEST(bmp_image_buffer, extract_chunk_size_2_works) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     im.data_offset = 0;
     auto is = std::make_unique<std::stringstream>();
     const unsigned char data[] = {
@@ -335,7 +335,7 @@ TEST(bmp_image_buffer, extract_chunk_size_2_works) {
     is->write(reinterpret_cast<const char*>(data), sizeof(data));
     ASSERT_TRUE(im.assign_input(std::move(is)));
 
-    bmp::image_buffer ib(im, 2);
+    bmp_image_buffer ib(im, 2);
     std::vector<uint8_t> extracted(3);
     chunker chnkr{extracted, 2, false};
 
@@ -347,7 +347,7 @@ TEST(bmp_image_buffer, extract_chunk_size_2_works) {
 }
 
 TEST(bmp_image_buffer, extract_chunk_size_8_works) {
-    bmp::image im("test_image", 8);
+    bmp_image im("test_image", 8);
     im.data_offset = 0;
     auto is = std::make_unique<std::stringstream>();
     const unsigned char data[] = {
@@ -357,7 +357,7 @@ TEST(bmp_image_buffer, extract_chunk_size_8_works) {
     is->write(reinterpret_cast<const char*>(data), sizeof(data));
     ASSERT_TRUE(im.assign_input(std::move(is)));
 
-    bmp::image_buffer ib(im, 8);
+    bmp_image_buffer ib(im, 8);
     std::vector<uint8_t> extracted(3);
     chunker chnkr{extracted, 8, false};
 
@@ -369,7 +369,7 @@ TEST(bmp_image_buffer, extract_chunk_size_8_works) {
 }
 
 TEST(bmp_image_buffer, extract_chunk_with_small_capacity_return_false) {
-    bmp::image im("test_image", 2);
+    bmp_image im("test_image", 2);
     im.data_offset = 0;
     auto is = std::make_unique<std::stringstream>();
     const unsigned char data[] = {
@@ -378,7 +378,7 @@ TEST(bmp_image_buffer, extract_chunk_with_small_capacity_return_false) {
     is->write(reinterpret_cast<const char*>(data), sizeof(data));
     ASSERT_TRUE(im.assign_input(std::move(is)));
 
-    bmp::image_buffer ib(im, 2);
+    bmp_image_buffer ib(im, 2);
     std::vector<uint8_t> extracted(3);
     chunker chnkr{extracted, 2, false};
 

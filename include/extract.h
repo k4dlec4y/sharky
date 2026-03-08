@@ -18,8 +18,8 @@
  * @return `true` on success, `false` otherwise
  */
 bool extract_hidden_metadata(
-    bmp::image& im,
-    bmp::image_buffer& buffer,
+    bmp_image& im,
+    bmp_image_buffer& buffer,
     std::ostream& err
 );
 
@@ -37,8 +37,8 @@ bool extract_hidden_metadata(
  * (buffer should be passed to `extract_hidden_metadata()` first)
  */
 bool extract_data(
-    bmp::image& im,
-    bmp::image_buffer& buffer,
+    bmp_image& im,
+    bmp_image_buffer& buffer,
     std::span<uint8_t> data,
     std::ostream& err
 );
@@ -53,7 +53,7 @@ bool extract_data(
  * @return `0` on success, `1` otherwise
  */
 int extract(
-    std::vector<bmp::image>& images,
+    std::vector<bmp_image>& images,
     std::ostream& data_ostream,
     std::ostream& err = std::cerr
 );

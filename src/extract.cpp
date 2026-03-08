@@ -49,7 +49,7 @@ static void invalid_id_log(
 }
 
 static bool extract_bytes(
-    bmp::image_buffer& buffer,
+    bmp_image_buffer& buffer,
     chunker& chunker,
     uint8_t chunk_size,
     auto size,
@@ -67,8 +67,8 @@ static bool extract_bytes(
 }
 
 bool extract_hidden_metadata(
-    bmp::image& im,
-    bmp::image_buffer& buffer,
+    bmp_image& im,
+    bmp_image_buffer& buffer,
     std::ostream& err
 ) {
     std::vector<uint8_t> data(HIDDEN_METADATA_SIZE);
@@ -95,8 +95,8 @@ bool extract_hidden_metadata(
 }
 
 bool extract_data(
-    bmp::image& im,
-    bmp::image_buffer& buffer,
+    bmp_image& im,
+    bmp_image_buffer& buffer,
     std::span<uint8_t> data,
     std::ostream& err
 ) {
@@ -109,12 +109,12 @@ bool extract_data(
 }
 
 int extract(
-    std::vector<bmp::image>& images,
+    std::vector<bmp_image>& images,
     std::ostream& data_ostream,
     std::ostream& err
 ) {
     assert(images.size() > 0);
-    std::vector<bmp::image_buffer> buffers{};
+    std::vector<bmp_image_buffer> buffers{};
     auto data_size = 0;
 
     for (auto i = 0u; i < images.size(); ++i) {

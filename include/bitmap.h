@@ -8,14 +8,12 @@
 #include <memory>
 #include <iostream>
 
-namespace bmp {
-
 /**
  * @brief Struct representing a bmp image, containing all relevant information
  * about the image, as well as input and output streams for reading and writing
  * the image file.
  */
-struct image {
+struct bmp_image {
     std::string filename;
     std::unique_ptr<std::istream> input{nullptr};
     std::unique_ptr<std::ostream> output{nullptr};
@@ -46,7 +44,7 @@ struct image {
      * initializes the filename and chunk_size members. The input/output files
      * should be opened by calling `assign_input`/`assign_output` methods.
      */
-    image(const std::string &filename, uint8_t chunk_size);
+    bmp_image(const std::string &filename, uint8_t chunk_size);
 
     /**
      * @brief Opens the input stream for the image using the filename
@@ -115,7 +113,7 @@ struct image {
      * @brief Image comparison operator, compares images by their sequence
      * number. This is useful when extracting data from images.
      */
-    auto operator<=>(const bmp::image &rhs) const;
+    auto operator<=>(const bmp_image &rhs) const;
 
     /**
      * @brief Moves reading position of the input stream to data offset.
@@ -139,14 +137,14 @@ const std::size_t BUFFER_SIZE = 4096;
  * a buffer for reading and writing data to the image file, as well as methods
  * for hiding and extracting chunks of data.
  */
-class image_buffer {
+class bmp_image_buffer {
 public:
     /**
      * @param im image to be used for hiding/extracting data
      * @param chunk_size size of chunk in bits, how many bits of byte
      * will store hidden data
      */
-    image_buffer(bmp::image &im, uint8_t chunk_size);
+    bmp_image_buffer(bmp_image &im, uint8_t chunk_size);
 
     /**
      * @brief Hides the provided chunk of data into the image. It returns `true`
@@ -193,7 +191,7 @@ private:
     std::array<char, BUFFER_SIZE> buffer;
     std::size_t index{0};
     std::size_t loaded{0};
-    bmp::image &im;
+    bmp_image &im;
 
     uint8_t mask;
     uint8_t erase_mask;
@@ -204,7 +202,5 @@ private:
     uint32_t x{0};
     uint8_t skip{0};
 };
-
-}
 
 #endif  // BITMAP_H

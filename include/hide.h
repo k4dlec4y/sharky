@@ -17,7 +17,7 @@
  * @return `true` on success, `false` on failure
  */
 bool hide_data(
-    bmp::image &im,
+    bmp_image &im,
     std::span<uint8_t> to_hide,
     uint8_t id,
     uint8_t seq,
@@ -36,7 +36,7 @@ bool hide_data(
  * due to small images sizes, 2 in case of stream errors
  */
 int hide(
-    std::vector<bmp::image> &images,
+    std::vector<bmp_image> &images,
     std::istream &data,
     std::ostream &out = std::cout,
     std::ostream &err = std::cerr

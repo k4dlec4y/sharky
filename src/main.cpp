@@ -11,7 +11,7 @@ enum mode { NO_MODE, HIDE, EXTRACT };
 
 mode process_args(
     std::vector<std::string> &args,
-    std::vector<bmp::image> &images,
+    std::vector<bmp_image> &images,
     std::string &data_filename
 ) {
     using namespace std::literals;
@@ -59,7 +59,7 @@ mode process_args(
             data_filename = args[i];
         }
         else {
-            auto im = bmp::image(args[i], chunk_size);
+            auto im = bmp_image(args[i], chunk_size);
             if (!im.assign_input()) {
                 std::cerr << "image " << args[i] << " could not be opened\n";
             } else if (im.load_header()) {
@@ -80,7 +80,7 @@ mode process_args(
     return m;
 }
 
-static int open_output_files(std::vector<bmp::image> &images) {
+static int open_output_files(std::vector<bmp_image> &images) {
     for (auto &im : images) {
         if (!im.assign_output()) {
             std::cerr << "could not open output file for image "
@@ -99,7 +99,7 @@ static int open_output_files(std::vector<bmp::image> &images) {
 int main(int argc, char *argv[])
 {
     std::vector<std::string> args(argv + 1, argv + argc);
-    std::vector<bmp::image> images;
+    std::vector<bmp_image> images;
 
     std::string data_filename("");
 
