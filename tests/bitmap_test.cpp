@@ -1,7 +1,12 @@
 #include "bitmap.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <sstream>
 #include <memory>
+#include <sys/types.h>
+#include <vector>
+
+#include "chunker.h"
 
 TEST(bmp_image, constructor_initializes_members) {
     bmp::image im("test_image", 2);
@@ -213,4 +218,174 @@ TEST(bmp_image, assign_output_works) {
     ASSERT_TRUE(im.assign_output(std::move(ss)));
     EXPECT_NE(im.output, nullptr);
     EXPECT_EQ(ss, nullptr);
+}
+
+TEST(bmp_image_buffer, constructor_initializes_members) {
+    bmp::image im("test_image", 2);
+    auto ss = std::make_unique<std::stringstream>();
+    ASSERT_TRUE(im.assign_input(std::move(ss)));
+    bmp::image_buffer ib(im, 2);
+    EXPECT_TRUE(true);
+}
+
+TEST(bmp_image_buffer, hide_chunk_size_2_works) {
+    bmp::image im("test_image", 2);
+    im.data_offset = 0;
+    auto is = std::make_unique<std::stringstream>();
+    const unsigned char im_data[] = {
+        0x42, 0x4d, 0x6e, 0x58, 0x5a, 0x4f, 0xfa, 0xd1,
+        0x00, 0x00, 0x00, 0x00, 0x7b, 0xc9, 0x8a, 0x00
+    };
+    is->write(reinterpret_cast<const char*>(im_data), sizeof(im_data));
+    ASSERT_TRUE(im.assign_input(std::move(is)));
+    auto os = std::make_unique<std::stringstream>();
+    ASSERT_TRUE(im.assign_output(std::move(os)));
+
+    bmp::image_buffer ib(im, 2);
+
+    std::vector<uint8_t> to_hide{0b10101010, 0b01010101, 0b11110000};
+    chunker chnkr{to_hide, 2};
+
+    uint8_t chunk;
+    while (chnkr.get_chunk(chunk))
+        ASSERT_TRUE(ib.hide_chunk(chunk));
+    ib.copy_rest();
+
+    const unsigned char expected[] = {
+        0x42, 0x4e, 0x6e, 0x5a, 0x59, 0x4d, 0xf9, 0xd1,
+        0x00, 0x00, 0x03, 0x03, 0x7b, 0xc9, 0x8a, 0x00
+    };
+
+    auto &output = im.output;
+    ASSERT_TRUE(output != nullptr);
+    auto str_output = dynamic_cast<std::stringstream*>(output.get());
+    ASSERT_TRUE(str_output != nullptr);
+    EXPECT_EQ(str_output->str(), std::string_view(reinterpret_cast<const char*>(expected), sizeof(expected)));
+}
+
+TEST(bmp_image_buffer, hide_chunk_size_8_works) {
+    bmp::image im("test_image", 8);
+    im.data_offset = 0;
+    auto is = std::make_unique<std::stringstream>();
+    const unsigned char im_data[] = {
+        0x42, 0x4d, 0x6e, 0x58, 0x5a, 0x4f, 0xfa, 0xd1,
+        0x00, 0x00, 0x00, 0x00, 0x7b, 0xc9, 0x8a, 0x00
+    };
+    is->write(reinterpret_cast<const char*>(im_data), sizeof(im_data));
+    ASSERT_TRUE(im.assign_input(std::move(is)));
+    auto os = std::make_unique<std::stringstream>();
+    ASSERT_TRUE(im.assign_output(std::move(os)));
+
+    bmp::image_buffer ib(im, 8);
+
+    std::vector<uint8_t> to_hide{0b10101010, 0b01010101, 0b11110000};
+    chunker chnkr{to_hide, 8};
+
+    uint8_t chunk;
+    while (chnkr.get_chunk(chunk))
+        ASSERT_TRUE(ib.hide_chunk(chunk));
+    ib.copy_rest();
+
+    const unsigned char expected[] = {
+        0xaa, 0x55, 0xf0, 0x58, 0x5a, 0x4f, 0xfa, 0xd1,
+        0x00, 0x00, 0x00, 0x00, 0x7b, 0xc9, 0x8a, 0x00
+    };    
+
+    auto &output = im.output;
+    ASSERT_TRUE(output != nullptr);
+    auto str_output = dynamic_cast<std::stringstream*>(output.get());
+    ASSERT_TRUE(str_output != nullptr);
+    EXPECT_EQ(str_output->str(), std::string_view(reinterpret_cast<const char*>(expected), sizeof(expected)));
+}
+
+TEST(bmp_image_buffer, hide_chunk_with_small_capacity_return_false) {
+    bmp::image im("test_image", 2);
+    im.data_offset = 0;
+    auto is = std::make_unique<std::stringstream>();
+    const unsigned char im_data[] = {
+        0x42, 0x4d, 0x6e, 0x58
+    };
+    is->write(reinterpret_cast<const char*>(im_data), sizeof(im_data));
+    ASSERT_TRUE(im.assign_input(std::move(is)));
+    auto os = std::make_unique<std::stringstream>();
+    ASSERT_TRUE(im.assign_output(std::move(os)));
+
+    bmp::image_buffer ib(im, 2);
+
+    std::vector<uint8_t> to_hide{0b10101010, 0b01010101, 0b11110000};
+    chunker chnkr{to_hide, 2};
+
+    uint8_t chunk;
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_TRUE(chnkr.get_chunk(chunk));
+        ASSERT_TRUE(ib.hide_chunk(chunk));
+    }
+    ASSERT_TRUE(chnkr.get_chunk(chunk));
+    ASSERT_FALSE(ib.hide_chunk(chunk));
+}
+
+TEST(bmp_image_buffer, extract_chunk_size_2_works) {
+    bmp::image im("test_image", 2);
+    im.data_offset = 0;
+    auto is = std::make_unique<std::stringstream>();
+    const unsigned char data[] = {
+        0x42, 0x4e, 0x6e, 0x5a, 0x59, 0x4d, 0xf9, 0xd1,
+        0x00, 0x00, 0x03, 0x03, 0x7b, 0xc9, 0x8a, 0x00
+    };
+    is->write(reinterpret_cast<const char*>(data), sizeof(data));
+    ASSERT_TRUE(im.assign_input(std::move(is)));
+
+    bmp::image_buffer ib(im, 2);
+    std::vector<uint8_t> extracted(3);
+    chunker chnkr{extracted, 2, false};
+
+    uint8_t chunk;
+    while(ib.extract_chunk(chunk) && chnkr.send_chunk(chunk)) {}
+
+    const std::vector<uint8_t> expected{0b10101010, 0b01010101, 0b11110000};
+    EXPECT_EQ(extracted, expected);
+}
+
+TEST(bmp_image_buffer, extract_chunk_size_8_works) {
+    bmp::image im("test_image", 8);
+    im.data_offset = 0;
+    auto is = std::make_unique<std::stringstream>();
+    const unsigned char data[] = {
+        0xaa, 0x55, 0xf0, 0x58, 0x5a, 0x4f, 0xfa, 0xd1,
+        0x00, 0x00, 0x00, 0x00, 0x7b, 0xc9, 0x8a, 0x00
+    };
+    is->write(reinterpret_cast<const char*>(data), sizeof(data));
+    ASSERT_TRUE(im.assign_input(std::move(is)));
+
+    bmp::image_buffer ib(im, 8);
+    std::vector<uint8_t> extracted(3);
+    chunker chnkr{extracted, 8, false};
+
+    uint8_t chunk;
+    while(ib.extract_chunk(chunk) && chnkr.send_chunk(chunk)) {}
+
+    const std::vector<uint8_t> expected{0b10101010, 0b01010101, 0b11110000};
+    EXPECT_EQ(extracted, expected);
+}
+
+TEST(bmp_image_buffer, extract_chunk_with_small_capacity_return_false) {
+    bmp::image im("test_image", 2);
+    im.data_offset = 0;
+    auto is = std::make_unique<std::stringstream>();
+    const unsigned char data[] = {
+        0x42, 0x4e, 0x6e, 0x5a
+    };
+    is->write(reinterpret_cast<const char*>(data), sizeof(data));
+    ASSERT_TRUE(im.assign_input(std::move(is)));
+
+    bmp::image_buffer ib(im, 2);
+    std::vector<uint8_t> extracted(3);
+    chunker chnkr{extracted, 2, false};
+
+    uint8_t chunk;
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_TRUE(ib.extract_chunk(chunk));
+        ASSERT_TRUE(chnkr.send_chunk(chunk));
+    }
+    ASSERT_FALSE(ib.extract_chunk(chunk));
 }
