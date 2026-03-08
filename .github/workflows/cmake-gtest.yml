@@ -33,5 +33,5 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
 
     - name: CLI-Test
-      working-directory: ${{github.workspace}}/tests
-      run: cli_test.sh
+      working-directory: ${{github.workspace}}
+      run: bash tests/cli_test.sh
