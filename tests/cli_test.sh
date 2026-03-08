@@ -1,8 +1,11 @@
 #!/bin/bash
+set -e
 
 rm -f data/data_out
-./build/sharky -c 4 bitmaps_in/image.bmp -c 8 bitmaps_in/image2.bmp -h -f data/data_in &&
-./build/sharky bitmaps_out/image2.bmp bitmaps_out/image.bmp -e -f data/data_out
+
+./build/sharky --hide --chunk_size 4 bitmaps_in/image.bmp --chunk_size 8 bitmaps_in/image2.bmp --file data/data_in
+./build/sharky --extract bitmaps_out/image2.bmp bitmaps_out/image.bmp --file data/data_out
+
+echo "Comparing input/output data..."
 cmp data/data_in data/data_out
-ex=$?
-exit $ex
+echo "Test passed"
