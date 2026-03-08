@@ -42,7 +42,7 @@ static uint32_t to_uint32(const uint8_t *data) {
 
 static uint8_t count_padding(auto width, auto channels) {
     /* & 0b11 == % 4 */
-    return (4 - (width * channels) & 0b11) & 0b11;
+    return (4 - (width * channels)) & 0b11;
 }
 
 bool bmp_image::load_header(std::ostream &err) {
